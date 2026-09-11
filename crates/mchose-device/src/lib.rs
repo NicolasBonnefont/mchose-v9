@@ -21,3 +21,5 @@
     )
 )]
 pub mod discovery;
+pub mod machine;
+pub(crate) mod transport;

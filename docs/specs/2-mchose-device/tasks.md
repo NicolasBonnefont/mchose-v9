@@ -14,14 +14,14 @@
   **Requisito:** `Comportamento alvo` → "Descoberta"; invariante "nada é aberto antes de `is_supported` devolver verdadeiro"
   **Verificação:** `cargo test -p mchose-device discovery::` — sobre uma árvore de `sysfs` falsa em diretório temporário: casa o V9 PRO, ignora irmão de mesmo VID/PID, ignora `uevent` malformado, e nenhum arquivo de dispositivo é aberto
 
-- [ ] ### 3. Trait de transporte e o fake
+- [x] ### 3. Trait de transporte e o fake
   **Arquivos:** Criar: `crates/mchose-device/src/transport.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** tipos do `mchose-protocol`
   **Produces:** trait `pub(crate)` com quatro operações (ler, escrever, `GET_FEATURE`, `SET_FEATURE`) e um fake que encena respostas, silêncio, truncamento e sumiço
   **Requisito:** `Comportamento alvo` → "Transporte atrás de um trait"; invariante "o trait de transporte é `pub(crate)`"
   **Verificação:** `cargo test -p mchose-device transport::` — o fake devolve os pacotes capturados e encena as quatro situações
 
-- [ ] ### 4. Máquina de estados e sequenciamento
+- [x] ### 4. Máquina de estados e sequenciamento
   **Arquivos:** Criar: `crates/mchose-device/src/machine.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** o trait da task 3
   **Produces:** consulta na conexão, escuta do push, prazo de resposta, transições de estado, espera assíncrona do feature
