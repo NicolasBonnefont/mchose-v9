@@ -52,6 +52,25 @@ O driver oficial (`MCHOSE HUB`) é Electron. O processo principal está compilad
 em bytecode V8, mas ele carrega a interface de `mchose.com.cn` — e é no *bundle*
 web que está a lógica de dispositivo, em JavaScript legível.
 
+O descritor da interface HID declara quatro coleções vendor. Só duas têm uso
+conhecido:
+
+| Report ID | Usage Page | Tipo | Uso |
+|---|---|---|---|
+| `0x55` | `0xFF90` | Input + Output, 63 B | bateria |
+| `0xAA` | `0xFF22` | Feature, 63 B | firmware |
+| `0xED` | `0xFF21` | In/Out 1 B + Feature 15 B | desconhecido |
+| `0x41` | `0xFF82` | Input + Output, 63 B | desconhecido |
+
+O resto do descritor são teclas de mídia (report `0x06`) e telefonia (`0x07`),
+que já funcionam como HID padrão — e que chegam no **mesmo** `/dev/hidraw`, então
+quem lê precisa descartá-las em silêncio em vez de tratá-las como anomalia.
+
+> [!CAUTION]
+> Escrever nos report IDs `0xED` e `0x41` sem saber o que significam é caminho
+> conhecido para brickar dispositivo. Este projeto não expõe nenhum construtor
+> que os alcance, de propósito.
+
 **Bateria.** Output report `0x55`, payload `[0x65, 0x01, 0x00 ×61]`. A resposta
 chega como input report `0x55` começando com `0x65`:
 
@@ -68,6 +87,12 @@ versão são os bytes 2 a 5.
 
 O fone **empurra** a atualização de bateria sozinho, então o modo normal de
 operação é passivo: sem polling.
+
+> [!TIP]
+> Para reencontrar o código no *bundle*: o chunk que importa passa de 7 MB e os
+> hashes do nome rotacionam. Baixe conferindo o `Content-Length` — um download
+> truncado silenciosamente já custou uma conclusão errada aqui, a de que o código
+> deste fone não estava no *bundle* web.
 
 ## Armadilhas que custaram caro
 
