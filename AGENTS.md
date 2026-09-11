@@ -4,10 +4,10 @@ Applet COSMIC que mostra bateria e controla o headset MCHOSE V9 PRO no Pop!_OS.
 
 ## Stack real
 
-Workspace Rust de **três** crates: `crates/mchose-protocol`, puro e sem I/O
+Workspace Rust de **quatro** crates: `crates/mchose-protocol`, puro e sem I/O
 (card #1); `crates/mchose-device`, que fala com o `/dev/hidraw` e expõe um
-`Stream` de eventos (card #2); e `cosmic-applet-mchose`, o applet do painel
-(card #3). Falta `mchose-audio`, card #4.
+`Stream` de eventos (card #2); `cosmic-applet-mchose`, o applet do painel (card #3); e `crates/mchose-audio`,
+o EQ pela filter-chain do PipeWire (card #4).
 
 O libcosmic entra fixado no rev `d4d71fd5`, o mesmo que os `cosmic-applets`
 1.0.15 desta máquina usam. **A API dele se lê na fonte do checkout, não no doc:**
@@ -31,9 +31,10 @@ Ambiente verificado: COSMIC 1.0.0 (`cosmic-comp` a830784), `cosmic-applets`
 **Rust não está instalado nesta máquina.** Usar `rustup`; o `rustc` 1.75 do apt
 é velho demais para libcosmic.
 
-Faltam headers de build: `libudev-dev` e os de PipeWire (`libpipewire-0.3` não
-está no `pkg-config`). O módulo `libpipewire-module-filter-chain.so` está
-presente, que é o que o EQ vai usar em runtime.
+Headers de build instalados: `libudev` 255 e `libpipewire-0.3` 1.6.8, mais as
+dezoito bibliotecas que o libcosmic exige. O módulo
+`libpipewire-module-filter-chain.so` está presente, e o sistema traz templates
+prontos em `/usr/share/pipewire/filter-chain/`.
 
 ## Comandos
 
@@ -60,8 +61,8 @@ prova de que os bytes das fixtures vieram do hardware.
 
 ## Rede de segurança automatizada
 
-**47 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
-`mchose-protocol`, 16 em `mchose-device` e 10 no applet. As fixtures são bytes reais
+**76 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
+`mchose-protocol`, 16 em `mchose-device`, 29 em `mchose-audio` e 10 no applet. As fixtures são bytes reais
 capturados do dispositivo (`55 65 46 02`, `aa 01 00 00 01 02 ff 25`), não
 inventadas.
 
@@ -168,9 +169,11 @@ que sobraram são o `README.md` (bytes, famílias, armadilhas), os testes do
 `mchose-protocol` (as capturas reais) e `spikes/battery_probe.py`. Tratar os três
 como código: se sumirem, o trabalho se refaz do zero.
 
-**O EQ nunca teve spike.** Bateria está validada ponta a ponta; a filter-chain
-do PipeWire é papel. É o item com maior chance de estourar estimativa, e por
-isso é o último na ordem de construção.
+**O EQ teve spike executado antes do spec** (11/09/2026): a filter-chain cria o
+sink virtual, e mudar ganho ao vivo funciona — **mas só com o sink ativo**.
+Suspenso, o comando é aceito e silenciosamente ignorado. O surround ficou de
+fora: depende de um HRIR que não temos e cujo licenciamento não dá para
+verificar.
 
 **Dois recursos são inalcançáveis, não adiados:** volume dos avisos sonoros e
 auto-desligamento. No Windows passam pela ConfLib da C-Media (`PropertyControl`

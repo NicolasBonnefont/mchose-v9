@@ -21,9 +21,10 @@ MCHOSE HUB; no Linux não havia nada.
 | Protocolo (bateria, firmware) | pronto, validado no hardware |
 | Acesso ao dispositivo, hotplug | pronto, validado no hardware |
 | Applet no painel do COSMIC | pronto, funcionando no painel |
-| EQ e surround via PipeWire | não começou |
+| EQ de 10 bandas via PipeWire | pronto |
+| Surround 7.1 | fora de escopo, ver abaixo |
 
-O applet mostra a bateria no painel. O que falta é o EQ.
+O applet mostra a bateria no painel e o EQ de 10 bandas funciona.
 
 ## Instalação
 
@@ -129,10 +130,28 @@ não protocolo de dispositivo.
 ```
 crates/mchose-protocol/   bytes ↔ tipos, sem I/O, sem dependências
 crates/mchose-device/     hidraw, hotplug, Stream de eventos
+crates/mchose-audio/      EQ via filter-chain do PipeWire
 cosmic-applet-mchose/     o applet; state.rs não conhece libcosmic
-install/                  regra udev, desktop entry, script de instalação
+install/                  regra udev, desktop entry, scripts de instalação
 spikes/                   probe em Python que validou o protocolo
 ```
+
+Para o EQ:
+
+```bash
+bash install/install-eq.sh                  # tudo em 0 dB
+bash install/install-eq.sh 4 0 0 -3 0 0 0 0 0 6
+```
+
+Ele cria um sink **MCHOSE V9 PRO EQ**; selecione-o como saída para ouvir o
+efeito. As dez bandas são `31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16k` Hz, com
+ganho de `-12` a `+12` dB.
+
+> [!NOTE]
+> **Surround 7.1 ficou de fora.** O `sink-virtual-surround-7.1-hesuvi.conf` do
+> PipeWire exige `hrir_hesuvi/hrir.wav` — resposta impulsional com licenciamento
+> próprio, que este repositório não redistribui. Quando virar card, o arquivo
+> será apontado a partir de uma instalação do usuário.
 
 Para ver os eventos sem painel:
 
