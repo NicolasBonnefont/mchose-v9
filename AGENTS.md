@@ -31,9 +31,10 @@ Ambiente verificado: COSMIC 1.0.0 (`cosmic-comp` a830784), `cosmic-applets`
 **Rust não está instalado nesta máquina.** Usar `rustup`; o `rustc` 1.75 do apt
 é velho demais para libcosmic.
 
-Faltam headers de build: `libudev-dev` e os de PipeWire (`libpipewire-0.3` não
-está no `pkg-config`). O módulo `libpipewire-module-filter-chain.so` está
-presente, que é o que o EQ vai usar em runtime.
+Headers de build instalados: `libudev` 255 e `libpipewire-0.3` 1.6.8, mais as
+dezoito bibliotecas que o libcosmic exige. O módulo
+`libpipewire-module-filter-chain.so` está presente, e o sistema traz templates
+prontos em `/usr/share/pipewire/filter-chain/`.
 
 ## Comandos
 
@@ -168,9 +169,11 @@ que sobraram são o `README.md` (bytes, famílias, armadilhas), os testes do
 `mchose-protocol` (as capturas reais) e `spikes/battery_probe.py`. Tratar os três
 como código: se sumirem, o trabalho se refaz do zero.
 
-**O EQ nunca teve spike.** Bateria está validada ponta a ponta; a filter-chain
-do PipeWire é papel. É o item com maior chance de estourar estimativa, e por
-isso é o último na ordem de construção.
+**O EQ teve spike executado antes do spec** (11/09/2026): a filter-chain cria o
+sink virtual, e mudar ganho ao vivo funciona — **mas só com o sink ativo**.
+Suspenso, o comando é aceito e silenciosamente ignorado. O surround ficou de
+fora: depende de um HRIR que não temos e cujo licenciamento não dá para
+verificar.
 
 **Dois recursos são inalcançáveis, não adiados:** volume dos avisos sonoros e
 auto-desligamento. No Windows passam pela ConfLib da C-Media (`PropertyControl`
