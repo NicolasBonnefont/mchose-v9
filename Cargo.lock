@@ -3221,6 +3221,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mchose-audio"
+version = "0.1.0"
+dependencies = [
+ "mchose-protocol",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "mchose-device"
 version = "0.1.0"
 dependencies = [

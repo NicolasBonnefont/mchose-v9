@@ -1,0 +1,18 @@
+[package]
+name = "mchose-audio"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "EQ de 10 bandas para o MCHOSE V9 PRO, via filter-chain do PipeWire"
+
+# So o protocolo, e so por `is_supported`: a regra de identificacao do projeto
+# nao e reimplementada aqui. Sem FFI e sem shell — a conversa com o PipeWire e
+# por processo externo com argv.
+[dependencies]
+mchose-protocol = { path = "../mchose-protocol" }
+# Le o JSON do `pw-dump`. Unica dependencia externa do crate: escrever um
+# parser de JSON a mao seria superficie pior que usar o padrao do ecossistema.
+serde_json = "1"
+
+[dev-dependencies]
+tempfile = "3"

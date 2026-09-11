@@ -72,10 +72,13 @@ recarregar nada — e o arquivo é atualizado junto.
 atualiza o `control` correspondente no `.conf`; sem isso o próximo restart
 reverte o EQ em silêncio.
 
-**O estado suspenso é parte do contrato.** Escrever ganho num sink suspenso não
-tem efeito e não devolve erro — apurado no spike. O crate confere **relendo
-`Props` depois de escrever**, nunca antes: entre checar e escrever o nó pode
-suspender.
+**Nunca assumir que aplicou; confirmar relendo.** No spike, com a filter-chain
+hospedada numa instância própria (`pipewire -c`), escrever ganho num nó suspenso
+foi aceito e **silenciosamente ignorado**. Já sob o `filter-chain.service` do
+sistema, a mesma escrita pega mesmo com o nó suspenso. O comportamento varia com
+a hospedagem, então o crate não deduz nada do estado: escreve, relê `Props`, e
+responde o que a releitura disser. A releitura vem **depois** da escrita, nunca
+antes — entre checar e escrever o nó pode mudar de estado.
 
 **Ler os ganhos atuais** também faz parte da API, e o `node.name` do sink virtual
 é estável e público — sem as duas coisas, os sliders de um futuro card de UI
@@ -105,8 +108,11 @@ nasceriam sem valor inicial.
   regra do `PermissionDenied` do applet vale aqui — isto é feito para ser colado
   em issue.
 - **Ganho fora de `-12..=+12` dB não é escrito.**
-- **Aplicar num nó suspenso devolve "não aplicado", nunca sucesso.** Conferido
-  relendo `Props` **depois** da escrita.
+- **O resultado vem da releitura, não do estado do nó.** "Suspenso implica não
+  aplicado" **não** é regra: foi observado numa instância própria de PipeWire e
+  não se reproduz sob o `filter-chain.service`. O crate reporta `Aplicado` ou
+  `NaoAplicado` conforme o valor relido, e o campo `ativo` do nó é informativo,
+  não preditivo.
 - **O crate não conhece HID nem o `mchose-device`.** Depende do
   `mchose-protocol` só por `is_supported`, que é a regra de identificação do
   projeto e não pode ser reimplementada aqui.
@@ -182,6 +188,6 @@ cargo test --locked -p mchose-audio -- --ignored
 
 - o sink virtual aparece depois de carregada a configuração
 - escrever ganho com o sink **ativo** muda o valor lido de volta
-- escrever ganho com o sink **suspenso** devolve "não aplicado"
+- o resultado relatado bate com o valor relido, com o sink ativo **e** suspenso
 - instalar texto inválido faz o crate reportar falha, não sucesso
 - escrita ao vivo bem-sucedida também atualiza o `control` no arquivo
