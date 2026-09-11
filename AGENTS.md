@@ -140,6 +140,11 @@ Documentação, comentários e mensagens de commit em **português**. Comentári
 explica *por quê*, não *o quê* — é o padrão do `g5-control` e a spec segue ele.
 
 Specs de design em `docs/superpowers/specs/AAAA-MM-DD-<tema>-design.md`.
+No `Arquivos no escopo` de um spec, cada item precisa ser **só o caminho ou o
+glob** — o `/sdd-validate` usa a linha inteira como padrão, então
+`` `Cargo.toml` (raiz) — acrescenta...`` nunca casa com `Cargo.toml`. A
+explicação vai em prosa, abaixo da lista.
+
 Specs do ciclo sdd em `docs/specs/`. Spikes descartáveis em `spikes/`.
 
 Commits sem prefixo de tipo; assunto em uma linha, corpo explicando a decisão.

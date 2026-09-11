@@ -101,6 +101,9 @@ kernel. Nenhuma rede, IPC, banco ou fila.
 
 **Pontos de registro:** `src/lib.rs` — módulo novo exige `pub(crate) mod` lá, e
 é onde a superfície pública é decidida. `Cargo.toml` da raiz lista os membros.
+**`install/72-mchose-v9.rules`** é o terceiro, e o mais fácil de esquecer: ele
+casa por VID/PID, então mexer nos ids suportados sem mexer nele faz o módulo
+achar o dispositivo pelo `sysfs` e não conseguir abri-lo.
 
 **Onde mora a condicional:** `aguardando` decide se há prazo de resposta
 (`src/machine.rs:100`) e `ha_quem_peca` se o canal de consulta ainda vale
@@ -133,6 +136,14 @@ ioctl, o `O_NONBLOCK` e a conferência de `rdev` estão provados contra o hardwa
 **Compilar nunca acontece com privilégio.** `cargo test` executa `build.rs` e
 proc-macros de toda a árvore; sob `sudo`, um PR que acrescente dependência vira
 root. Compila-se com `--no-run` e só o binário pronto roda com privilégio.
+
+**O número do arquivo da regra udev decide se ela funciona.** Quem converte a
+tag `uaccess` em ACL é o `73-seat-late.rules`. Uma regra numerada acima de 73
+marca o dispositivo depois desse estágio já ter passado: a tag aparece em
+`CURRENT_TAGS`, o `udevadm info` mostra tudo certo, e **nada acontece**. A regra
+deste projeto viveu como `99-` desde o primeiro commit e nunca funcionou — seis
+revisões não pegaram, porque toda verificação anterior usava `sudo`, que contorna
+o problema sem revelá-lo. Renomear para acima de 73 quebra o módulo em silêncio.
 
 **`/dev/uhid` não recebe regra udev.** Dar `uaccess` nele permite criar teclado
 HID virtual e injetar entrada na sessão — escalada local, não conveniência.
