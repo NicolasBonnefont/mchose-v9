@@ -31,7 +31,7 @@ impl HidrawTransport {
     /// Abre o dispositivo ja identificado.
     ///
     /// `PermissionDenied` aqui e um estado proprio, nao "sem dongle": significa
-    /// que `install/99-mchose-v9.rules` nao foi instalada, e quem mostra a
+    /// que `install/72-mchose-v9.rules` nao foi instalada, e quem mostra a
     /// mensagem precisa poder dizer *instale a regra*.
     pub(crate) fn open(caminho: &Path) -> io::Result<(Self, u64)> {
         use std::os::unix::fs::{MetadataExt, OpenOptionsExt};

@@ -45,7 +45,7 @@ O lint **não** usa `--all-targets`, de propósito: os lints antipânico existem
 para o código que recebe bytes do dispositivo, e `expect` num teste é como o
 teste declara falha.
 
-O probe precisa de `sudo` **enquanto** `install/99-mchose-v9.rules` não estiver
+O probe precisa de `sudo` **enquanto** `install/72-mchose-v9.rules` não estiver
 instalada; com a regra aplicada e o dongle replugado, o `uaccess` entrega o
 `hidraw` ao usuário da sessão e o `sudo` deixa de ser necessário. Rodar como root
 um script que faz `O_RDWR` em canal vendor de firmware é privilégio a mais.

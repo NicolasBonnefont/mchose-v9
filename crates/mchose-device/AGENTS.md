@@ -17,7 +17,7 @@ sequenciar consulta e resposta, e reatar depois de um sumiço.
   applets oficiais do COSMIC põem essa função.
 - Decidir o que mostrar. "Dormindo com o último valor conhecido" e "instale a
   regra udev" são frases do applet — aqui só se publica o estado.
-- Instalar `install/99-mchose-v9.rules`. É operação de máquina.
+- Instalar `install/72-mchose-v9.rules`. É operação de máquina.
 
 ## 2. Regras de negócio e invariantes
 

@@ -28,6 +28,12 @@ pub(crate) mod machine;
 // consumidor escrita de bytes crus no canal vendor, que e o que a API fechada do
 // `mchose-protocol` existe para impedir.
 pub use machine::DeviceEvent;
+
+// Reexportados porque atravessam a fronteira dentro do `DeviceEvent`: sem isso o
+// consumidor nao consegue nomear os tipos que recebe, e teria de depender do
+// `mchose-protocol` direto — o que a invariante de fronteira do pack proibe.
+pub use mchose_protocol::battery::{BatteryReading, ChargeState};
+pub use mchose_protocol::firmware::FirmwareVersion;
 pub(crate) mod hotplug;
 pub(crate) mod transport;
 
