@@ -4,7 +4,7 @@
 //! existir, e sobrevive a ele sumir e voltar. Nao conhece `iced` nem
 //! `libcosmic`: quem embrulha o `Stream` numa `Subscription` e o applet.
 //!
-//! Ver `docs/specs/2-mchose-device/spec.md`.
+//! Ver `README.md` e `crates/mchose-device/AGENTS.md`.
 
 // `deny`, nao `forbid`: os dois ioctls de feature do hidraw nao tem involucro
 // seguro na std, entao o modulo de transporte real precisa de `unsafe`. `deny`
