@@ -14,7 +14,7 @@
   **Requisito:** `Comportamento alvo` → "Identificação do dispositivo"; invariante "a identificação casa as duas formas do nome que o kernel expõe"
   **Verificação:** `cargo test -p mchose-protocol device::` — cobre as duas formas do nome, `V9 PRO 2`, `V9 PRO 2 ULTRA`, outro produto, nome vazio e nome de 4096 bytes
 
-- [ ] ### 3. Constantes de tempo e construção dos requests
+- [x] ### 3. Constantes de tempo e construção dos requests
   **Arquivos:** Criar: `crates/mchose-protocol/src/request.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** crate da task 1
   **Produces:** os dois construtores fechados (bateria, firmware dongle/fone) e as constantes de 300 ms e 2 s
