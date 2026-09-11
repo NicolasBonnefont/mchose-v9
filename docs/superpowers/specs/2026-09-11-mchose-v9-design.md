@@ -34,7 +34,7 @@ O descritor de report da interface HID declara quatro coleções vendor:
 
 | Report ID | Usage Page | Tipo | Tamanho |
 | --- | --- | --- | --- |
-| `0xED` | `0xFF21` | Feature | 15 B |
+| `0xED` | `0xFF21` | Input + Output + Feature | 1 B / 1 B / 15 B |
 | `0xAA` | `0xFF22` | Feature | 63 B |
 | `0x55` | `0xFF90` | Input + Output | 63 B |
 | `0x41` | `0xFF82` | Input + Output | 63 B |

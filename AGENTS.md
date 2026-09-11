@@ -4,9 +4,9 @@ Applet COSMIC que mostra bateria e controla o headset MCHOSE V9 PRO no Pop!_OS.
 
 ## Stack real
 
-**O repositório ainda não tem código.** Em 11/09/2026 ele contém quatro
-arquivos: a spec de design, o probe em Python que validou o protocolo, a regra
-udev e o `.gitignore`. Não existe manifesto de dependência.
+**O repositório ainda não tem código.** Em 11/09/2026 ele contém sete
+arquivos: as specs, o probe em Python que validou o protocolo, a regra udev e o
+`.gitignore`. Não existe manifesto de dependência.
 
 A stack **decidida** (spec aprovada, ainda não materializada) é Rust +
 `libcosmic`, em workspace de quatro crates. A decisão foi tomada contra a
@@ -88,8 +88,10 @@ configuração de áudio do usuário, fora do repositório.
 **udev/logind.** `install/99-mchose-v9.rules` usa `TAG+="uaccess"` para entregar
 o `hidraw` ao usuário da sessão. Requer instalação com root e replug do dongle.
 
-**Sem remote.** Não há GitHub configurado; branch base é `master`, um commit.
-O ciclo de cards do sdd ainda não tem onde ler issue.
+**GitHub.** `origin` é `github.com:NicolasBonnefont/mchose-v9`, repositório
+**público**; branch base é `master`. Os cards do ciclo sdd são as issues desse
+repositório. Sendo público, nada de caminho absoluto com nome de usuário, dump
+bruto de dispositivo ou dado pessoal no que for versionado.
 
 ## Pontos de registro
 
