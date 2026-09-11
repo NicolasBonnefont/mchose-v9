@@ -52,6 +52,11 @@ dispositivo é o V9 PRO.
   valendo e o byte é preservado — `src/battery.rs:29`
 - **Rejeição só carrega os bytes quando o pacote era de um canal nosso.**
   Tráfego alheio vira `None` — `src/lib.rs:51`
+- **`NoReading<'a>` empresta o buffer que você passou.** Nada que o carregue
+  dentro pode ser `'static`. Quem precisa atravessar uma fronteira `'static` —
+  uma `Message` de UI, um canal entre threads — copia os bytes antes. Foi a
+  primeira coisa que o `mchose-device` descobriu ao consumir este crate, e não
+  estava escrita em lugar nenhum — `src/lib.rs:33`
 - **A forma textual da versão é só exibição.** Comparação de ordem usa os quatro
   bytes crus — `src/firmware.rs:22`
 - **Nenhuma entrada causa pânico**, em nenhum tamanho. Acesso sempre por `get`,
@@ -79,9 +84,18 @@ do Rust ao redor. Comentário explica *por quê*, não *o quê*.
 
 ## 4. Blast radius
 
-**Consumidores diretos:** nenhum ainda. Os previstos são `mchose-device`
-(card #2), que vai chamar os construtores e os decodificadores; o applet
-(card #3), que consome `BatteryReading`, `ChargeState` e `FirmwareVersion`.
+**Consumidores diretos:** `mchose-device`, que usa praticamente tudo —
+`is_supported` na descoberta (`crates/mchose-device/src/discovery.rs`),
+`battery_request`/`firmware_request` e as constantes de tempo no transporte e na
+sessão, e `decode_battery`/`decode_firmware` com o `NoReading` na máquina de
+estados (`crates/mchose-device/src/machine.rs`). O previsto é o applet do
+card #3, que consome `BatteryReading`, `ChargeState` e `FirmwareVersion`
+indiretamente, dentro do `DeviceEvent`.
+
+**O que a mudança de um tipo público quebra:** `ChargeState`, `BatteryReading`,
+`FirmwareVersion` e `NoReading` atravessam o `mchose-device` e chegam ao applet.
+Os três primeiros são `#[non_exhaustive]`, então variante nova não quebra
+ninguém; campo novo em `NoReading`, sim.
 
 **Contratos que atravessam processo:** nenhum. Não há rede, IPC, banco ou fila.
 O único dado que atravessa fronteira são os bytes do `/dev/hidraw`, e este crate
