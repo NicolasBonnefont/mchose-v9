@@ -35,7 +35,7 @@
   **Requisito:** `Comportamento alvo` → "Firmware"; invariante "a forma textual da versão é só exibição"
   **Verificação:** `cargo test -p mchose-protocol firmware::` — `aa 01 00 00 01 02 ff 25` → `"0012"`; `aa 01 00 00 03 06 ff 25` → `"0036"`; buffers de 0 a 5 bytes; buffer sem report ID rejeitado
 
-- [ ] ### 6. Module Pack e atualização do AGENTS.md da raiz
+- [x] ### 6. Module Pack e atualização do AGENTS.md da raiz
   **Arquivos:** Criar: `crates/mchose-protocol/AGENTS.md` · Editar: `AGENTS.md` · Teste: —
   **Consumes:** o crate pronto das tasks 1 a 5
   **Produces:** o pack que os cards #2, #3 e #4 leem antes de consumir o crate; raiz descrevendo o repositório como ele ficou

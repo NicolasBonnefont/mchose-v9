@@ -4,15 +4,17 @@ Applet COSMIC que mostra bateria e controla o headset MCHOSE V9 PRO no Pop!_OS.
 
 ## Stack real
 
-**O repositório ainda não tem código.** Em 11/09/2026 ele contém sete
-arquivos: as specs, o probe em Python que validou o protocolo, a regra udev e o
-`.gitignore`. Não existe manifesto de dependência.
+Workspace Rust de **um** crate: `crates/mchose-protocol`, puro e sem I/O
+(card #1, entregue). Os outros três — `mchose-device`, `mchose-audio` e o applet
+`libcosmic` — nascem nos cards #2, #3 e #4.
 
-A stack **decidida** (spec aprovada, ainda não materializada) é Rust +
-`libcosmic`, em workspace de quatro crates. A decisão foi tomada contra a
-alternativa Python/GTK do projeto irmão `g5-control`, que resolve a mesma classe
-de problema nesta máquina — a troca foi deliberada, por causa do popover nativo
-e dos sliders do EQ.
+A stack foi escolhida contra a alternativa Python/GTK do projeto irmão
+`g5-control`, que resolve a mesma classe de problema nesta máquina. A troca foi
+deliberada, por causa do popover nativo e dos sliders do EQ.
+
+Toolchain fixada em `rust-toolchain.toml` (1.98.1); o `rustc` 1.75 do apt não
+serve. `Cargo.lock` é versionado. Sem dependências externas no crate de
+protocolo, de propósito.
 
 Ambiente verificado: COSMIC 1.0.0 (`cosmic-comp` a830784), `cosmic-applets`
 1.0.15, PipeWire 1.6.8, Python 3.12.3, kernel 7.1.5-76070105-generic.
@@ -28,26 +30,30 @@ presente, que é o que o EQ vai usar em runtime.
 
 | Ação | Comando |
 | --- | --- |
+| Teste | `cargo test -p mchose-protocol` |
+| Lint | `cargo clippy -p mchose-protocol -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
+| Formato | `cargo fmt --check` |
+| Build | `cargo build` |
 | Testar o protocolo no hardware | `sudo python3 spikes/battery_probe.py` |
-| Build | não existe ainda — `cargo build` depois do scaffold |
-| Teste | **não existe ainda** |
-| Lint | não existe ainda |
 
-O probe é o único comando que funciona hoje, e funciona: leu 70% descarregando,
-firmware `0012` no dongle e `0036` no fone.
+O lint **não** usa `--all-targets`, de propósito: os lints antipânico existem
+para o código que recebe bytes do dispositivo, e `expect` num teste é como o
+teste declara falha.
+
+O probe leu 70% descarregando, firmware `0012` no dongle e `0036` no fone — é a
+prova de que os bytes das fixtures vieram do hardware.
 
 ## Rede de segurança automatizada
 
-**Não existe. Zero testes, zero cobertura, zero CI, zero hook de pre-commit.**
+**20 testes de unidade em `mchose-protocol`, todos rodando sem hardware.**
+As fixtures são bytes reais capturados do dispositivo (`55 65 46 02`,
+`aa 01 00 00 01 02 ff 25`), não inventadas.
 
-Nada pode ser verificado automaticamente neste repositório hoje. Todo o
-conhecimento validado veio de execução manual do probe contra o hardware.
+**Zero CI e zero hook de pre-commit** — os três comandos acima rodam à mão. O
+crate de protocolo é o único do projeto que roda sem hardware, então é o
+candidato natural quando houver um card de CI.
 
-O que a spec planeja, e ainda não existe:
-
-- testes de unidade em `mchose-protocol` com os bytes reais capturados
-  (`55 65 46 02` e `aa 01 00 00 01 02 ff 25`), não fixtures inventadas
-- testes de I/O contra um V9 PRO virtual via `uhid`
+Ainda não existe: teste de I/O contra um V9 PRO virtual via `uhid` (card #2).
 
 **Ressalva sobre o `uhid`:** `/dev/uhid` existe mas é `crw------- root root`, e
 o módulo não está carregado. Testes baseados nele vão exigir root ou regra udev

@@ -12,3 +12,17 @@ com procedencia declarada; API de request fechada, sem construtor generico.
 Task 4: completa (bde67f7) — 8 testes novos, suite 16/16. Um tipo so de falha,
 carregando os bytes quando o pacote e do canal de bateria e None quando e
 trafego alheio (tecla de midia, telefonia) que chega no mesmo /dev/hidraw.
+
+Task 5: completa (ac92ee3) — 4 testes novos, suite 20/20. NoReading subiu para a
+raiz do crate, agora que bateria e firmware compartilham a mesma falha unica.
+
+Task 6: completa (b86a410) — pack de 119 linhas com 12 invariantes ancoradas em
+codigo; AGENTS.md da raiz deixou de afirmar que nao ha codigo, teste nem build.
+
+Minor: repositorio publico sem LICENSE — nao estava no escopo do card, mas e
+decisao pendente e afeta quem quiser reusar o protocolo.
+Minor: `FirmwareTarget` nasceu exaustivo, ao contrario dos outros tipos
+publicos. Sao dois alvos definidos pelo hardware (dongle e fone) e um `_` no
+consumidor nao teria o que tratar.
+Minor: `cargo clippy --all-targets` reprova os testes (usam `expect`). O comando
+do spec nao usa a flag, de proposito; registrado no pack.
