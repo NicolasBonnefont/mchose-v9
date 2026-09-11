@@ -4,17 +4,21 @@ Applet COSMIC que mostra bateria e controla o headset MCHOSE V9 PRO no Pop!_OS.
 
 ## Stack real
 
-Workspace Rust de **um** crate: `crates/mchose-protocol`, puro e sem I/O
-(card #1, entregue). Os outros três — `mchose-device`, `mchose-audio` e o applet
-`libcosmic` — nascem nos cards #2, #3 e #4.
+Workspace Rust de **dois** crates: `crates/mchose-protocol`, puro e sem I/O
+(card #1), e `crates/mchose-device`, que fala com o `/dev/hidraw` e expõe um
+`Stream` de eventos (card #2). Faltam `mchose-audio` e o applet `libcosmic`,
+cards #4 e #3.
 
 A stack foi escolhida contra a alternativa Python/GTK do projeto irmão
 `g5-control`, que resolve a mesma classe de problema nesta máquina. A troca foi
 deliberada, por causa do popover nativo e dos sliders do EQ.
 
 Toolchain fixada em `rust-toolchain.toml` (1.98.1) e instalada via `rustup`; o
-`rustc` 1.75 do apt não serve. `Cargo.lock` é versionado. Sem dependências
-externas no crate de protocolo, de propósito.
+`rustc` 1.75 do apt não serve. `Cargo.lock` é versionado.
+
+O crate de protocolo é **sem dependências externas**, de propósito. O de
+dispositivo traz `tokio`, `futures`, `udev` e `libc` — e é o único lugar do
+projeto com `unsafe`, confinado ao módulo dos ioctls.
 
 Ambiente verificado: COSMIC 1.0.0 (`cosmic-comp` a830784), `cosmic-applets`
 1.0.15, PipeWire 1.6.8, Python 3.12.3, kernel 7.1.5-76070105-generic.
@@ -30,10 +34,11 @@ presente, que é o que o EQ vai usar em runtime.
 
 | Ação | Comando |
 | --- | --- |
-| Teste | `cargo test -p mchose-protocol` |
-| Lint | `cargo clippy -p mchose-protocol -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
+| Teste | `cargo test` |
+| Lint | `cargo clippy --workspace -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
 | Formato | `cargo fmt --check` |
 | Build | `cargo build` |
+| Teste do caminho real | `cargo test -p mchose-device --no-run` e então o binário sob privilégio com `--ignored` |
 | Testar o protocolo no hardware | `python3 spikes/battery_probe.py` |
 
 O lint **não** usa `--all-targets`, de propósito: os lints antipânico existem
@@ -50,20 +55,32 @@ prova de que os bytes das fixtures vieram do hardware.
 
 ## Rede de segurança automatizada
 
-**20 testes de unidade em `mchose-protocol`, todos rodando sem hardware.**
-As fixtures são bytes reais capturados do dispositivo (`55 65 46 02`,
-`aa 01 00 00 01 02 ff 25`), não inventadas.
+**41 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
+`mchose-protocol` e 20 em `mchose-device`. As fixtures são bytes reais
+capturados do dispositivo (`55 65 46 02`, `aa 01 00 00 01 02 ff 25`), não
+inventadas.
+
+**Mais 2 marcados `#[ignore]`**, que exercitam o ioctl e o `AsyncFd` contra o
+hardware. Rodaram em 11/09/2026 com a regra udev instalada, **sem privilégio**:
+descoberta em `/dev/hidraw5` e leitura de 70% descarregando. Ficam sob demanda
+porque dependem do dongle plugado.
+
+**Compilar nunca acontece com privilégio.** `cargo test` executa `build.rs` e
+proc-macros de toda a árvore; sob `sudo`, um PR que acrescente dependência vira
+root na máquina de quem revisar.
 
 **Zero CI e zero hook de pre-commit** — os três comandos acima rodam à mão. O
 crate de protocolo é o único do projeto que roda sem hardware, então é o
 candidato natural quando houver um card de CI.
 
-Ainda não existe: teste de I/O contra um V9 PRO virtual via `uhid` (card #2).
+Ainda não existe: um V9 PRO virtual via `uhid` para o caminho real.
 
 **Ressalva sobre o `uhid`:** `/dev/uhid` existe mas é `crw------- root root`, e
-o módulo não está carregado. Testes baseados nele vão exigir root ou regra udev
-própria — a spec afirmou que rodariam "em CI sem o fone plugado" sem registrar
-esse custo. Resolver antes de depender da estratégia.
+o módulo não está carregado. Testes baseados nele exigem root — e **não** se
+resolve com regra udev: dar `uaccess` em `/dev/uhid` permite a qualquer processo
+da sessão criar teclado HID virtual e injetar entrada no compositor. É escalada
+de privilégio local, não conveniência de teste. A estratégia é fake em trait
+para a lógica, e testes `#[ignore]` rodados sob demanda para o caminho real.
 
 ## Arquitetura
 
@@ -96,8 +113,11 @@ firmware. Errar isso faz o applet falar com o fone errado.
 **PipeWire.** O EQ cria um sink virtual via `filter-chain`. Mexe na
 configuração de áudio do usuário, fora do repositório.
 
-**udev/logind.** `install/99-mchose-v9.rules` usa `TAG+="uaccess"` para entregar
-o `hidraw` ao usuário da sessão. Requer instalação com root e replug do dongle.
+**udev/logind.** `install/72-mchose-v9.rules` usa `TAG+="uaccess"` para entregar
+o `hidraw` ao usuário da sessão. **O número do arquivo importa:** quem converte a
+tag em ACL é o `73-seat-late.rules`, então uma regra acima de 73 marca o
+dispositivo tarde demais e nada acontece — foi o que houve enquanto ela se
+chamava `99-`. Requer instalação com root e `udevadm trigger` (ou replug).
 
 **GitHub.** `origin` é `github.com:NicolasBonnefont/mchose-v9`, repositório
 **público**; branch base é `master`. Os cards do ciclo sdd são as issues desse

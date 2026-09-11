@@ -2,6 +2,12 @@
 # usuario. uaccess entrega o descritor a quem esta na sessao grafica via ACL
 # do systemd-logind, sem precisar de grupo novo nem de chmod no boot.
 #
+# O NUMERO IMPORTA: quem converte a tag uaccess em ACL e o 73-seat-late.rules,
+# com RUN{builtin}+="uaccess". Uma regra numerada acima de 73 marca o
+# dispositivo depois de esse estagio ja ter passado — a tag aparece em
+# CURRENT_TAGS e nada acontece. Verificado na pratica: como 99-, o hidraw
+# continuava crw------- root root.
+#
 # Este VID/PID e compartilhado com S9 PRO, G9 PRO e V9 (chip C-Media reporta
 # os mesmos IDs), entao a regra e mais larga que o dispositivo: quem filtra
 # pelo nome do produto e o daemon, nao o udev.
