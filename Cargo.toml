@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+members = ["crates/mchose-protocol"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98"

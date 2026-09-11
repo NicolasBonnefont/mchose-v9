@@ -1,0 +1,6 @@
+# O rustc do apt (1.75) nao serve: libcosmic exige bem mais novo, e os lints
+# de restriction usados aqui precisam de clippy recente. Fixar evita que a
+# verificacao passe numa maquina e falhe na outra.
+[toolchain]
+channel = "1.98.1"
+components = ["clippy", "rustfmt"]

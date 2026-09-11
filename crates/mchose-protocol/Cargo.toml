@@ -1,0 +1,11 @@
+[package]
+name = "mchose-protocol"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Pacotes HID do headset MCHOSE V9 PRO: bateria e firmware"
+
+# Sem dependencias, de proposito: a unica entrada deste crate e hardware nao
+# confiavel, e quatro tipos de pacote nao justificam superficie de cadeia de
+# suprimentos. Ver docs/specs/1-mchose-protocol/spec.md.
+[dependencies]
