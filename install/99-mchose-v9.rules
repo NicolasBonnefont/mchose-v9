@@ -1,0 +1,9 @@
+# MCHOSE V9 PRO: o canal HID vendor nasce root-only, e o applet roda como
+# usuario. uaccess entrega o descritor a quem esta na sessao grafica via ACL
+# do systemd-logind, sem precisar de grupo novo nem de chmod no boot.
+#
+# Este VID/PID e compartilhado com S9 PRO, G9 PRO e V9 (chip C-Media reporta
+# os mesmos IDs), entao a regra e mais larga que o dispositivo: quem filtra
+# pelo nome do produto e o daemon, nao o udev.
+KERNEL=="hidraw*", SUBSYSTEM=="hidraw", \
+  ATTRS{idVendor}=="291d", ATTRS{idProduct}=="385d", TAG+="uaccess"
