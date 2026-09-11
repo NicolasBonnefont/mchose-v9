@@ -1,0 +1,18 @@
+[package]
+name = "mchose-device"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Acesso ao MCHOSE V9 PRO via hidraw, com hotplug"
+
+[dependencies]
+mchose-protocol = { path = "../mchose-protocol" }
+# AsyncFd espera o descritor do hidraw e o do monitor sem thread bloqueante.
+tokio = { version = "1", features = ["rt", "time", "net", "sync"] }
+futures = "0.3"
+udev = "0.9"
+libc = "0.2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["rt", "macros", "test-util", "time"] }
+tempfile = "3"

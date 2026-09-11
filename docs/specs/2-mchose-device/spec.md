@@ -61,6 +61,11 @@ assíncrona. Dormir bloqueando trava o painel do card #3.
 é onde os applets oficiais do COSMIC põem essa função
 (`cosmic-applet-bluetooth/src/bluetooth.rs`).
 
+**Firmware na conexão.** Ao descobrir o dongle, o crate consulta as duas versões
+— dongle e fone — e as publica num evento de conexão, que o card #3 guarda. Isso
+custa duas esperas de `FEATURE_ROUNDTRIP_WAIT` antes do primeiro número de
+bateria, e a alça de consulta fica com uma operação só.
+
 **Escuta passiva.** O fone empurra a atualização de bateria sozinho. O crate
 consulta em **dois momentos, e só neles**: quando o dongle aparece, e quando o
 consumidor pede explicitamente. Não há timer, não há polling.
@@ -112,6 +117,10 @@ card #3, e o vocabulário do evento não pode induzi-lo ao erro.
   Fronteira e Regras de negócio: identificação delegada, nome como bytes, e
   nenhuma entrada causa pânico. O nome trafega como bytes até o protocolo —
   `to_string_lossy` reintroduziria o defeito do padding.
+- **O evento de falha carrega uma cópia dos bytes rejeitados** — os 4 do canal
+  de bateria ou os 6 do de firmware que `NoReading.rejected` já delimita, nunca
+  o buffer inteiro. Sem isso o byte estranho morre dentro do crate e
+  `ChargeState::Unknown` perde o propósito: o protocolo deixa de ser mapeável.
 - **O evento publicado é owned e `Clone + Send + 'static`.** `NoReading<'a>`
   empresta o buffer de leitura (`crates/mchose-protocol/src/lib.rs:33`), então
   nada que o carregue pode ser `'static`, e o card #3 precisa convertê-lo em
