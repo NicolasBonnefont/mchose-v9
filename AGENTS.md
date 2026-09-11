@@ -149,6 +149,16 @@ Para o applet aparecer no painel: desktop entry com `X-CosmicApplet=true` e
 Documentação, comentários e mensagens de commit em **português**. Comentário
 explica *por quê*, não *o quê* — é o padrão do `g5-control` e a spec segue ele.
 
+**Card que se declara arriscado ganha spike antes do spec.** O card #4 era o
+único sem spike e dizia de si mesmo que era o de maior risco; rodar antes de
+escrever derrubou duas premissas e evitou desenhar em cima delas. O custo foi
+meia hora.
+
+**O que só rodar expõe não é pego por revisão nem por teste.** Nos quatro cards,
+os defeitos mais caros apareceram na execução: a regra udev com número errado, o
+descritor bloqueante, o `?` dentro do laço, e o `pipefail` com `grep -q`. Todos
+passaram por revisão de spec e de diff sem serem notados.
+
 No `Arquivos no escopo` de um spec, cada item precisa ser **só o caminho ou o
 glob** — o `/sdd-validate` usa a linha inteira como padrão, então
 `` `Cargo.toml` (raiz) — acrescenta...`` nunca casa com `Cargo.toml`. A
