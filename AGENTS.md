@@ -100,7 +100,7 @@ daemon separado — um applet de painel vive enquanto o painel vive.
 ```
 crates/mchose-protocol/   sem I/O, puro, testável sem hardware
 crates/mchose-device/     hidraw + hotplug por udev
-crates/mchose-audio/      EQ e surround via PipeWire filter-chain
+crates/mchose-audio/      EQ de 10 bandas via PipeWire filter-chain
 cosmic-applet-mchose/     applet libcosmic
 ```
 
