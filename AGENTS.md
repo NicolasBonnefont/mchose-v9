@@ -61,9 +61,11 @@ candidato natural quando houver um card de CI.
 Ainda não existe: teste de I/O contra um V9 PRO virtual via `uhid` (card #2).
 
 **Ressalva sobre o `uhid`:** `/dev/uhid` existe mas é `crw------- root root`, e
-o módulo não está carregado. Testes baseados nele vão exigir root ou regra udev
-própria — a spec afirmou que rodariam "em CI sem o fone plugado" sem registrar
-esse custo. Resolver antes de depender da estratégia.
+o módulo não está carregado. Testes baseados nele exigem root — e **não** se
+resolve com regra udev: dar `uaccess` em `/dev/uhid` permite a qualquer processo
+da sessão criar teclado HID virtual e injetar entrada no compositor. É escalada
+de privilégio local, não conveniência de teste. A estratégia é fake em trait
+para a lógica, e testes `#[ignore]` rodados sob demanda para o caminho real.
 
 ## Arquitetura
 
