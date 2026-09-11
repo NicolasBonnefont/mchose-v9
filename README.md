@@ -43,8 +43,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 sudo cp install/72-mchose-v9.rules /etc/udev/rules.d/
 sudo udevadm control --reload && sudo udevadm trigger --action=add --subsystem-match=hidraw
 
-cargo test
-cargo build --release -p cosmic-applet-mchose
+cargo test --locked
+cargo build --release --locked -p cosmic-applet-mchose
 bash install/install-applet.sh      # instala o applet e o registra no painel
 pkill -x cosmic-panel               # o painel reinicia sozinho
 ```
@@ -137,16 +137,22 @@ spikes/                   probe em Python que validou o protocolo
 Para ver os eventos sem painel:
 
 ```bash
-cargo run -p mchose-device --example eventos
+cargo run --locked -p mchose-device --example eventos
 ```
 
 Testes usam bytes capturados do hardware, não inventados. Os marcados
 `#[ignore]` falam com o fone de verdade:
 
 ```bash
-cargo test                                  # sem hardware
-cargo test -p mchose-device -- --ignored    # precisa do dongle plugado
+cargo test --locked                                  # sem hardware
+cargo test --locked -p mchose-device -- --ignored    # precisa do dongle plugado
 ```
+
+> [!IMPORTANT]
+> Use sempre `--locked`. Sete dependências vêm de branch móvel do `pop-os`, sem
+> commit fixado no manifesto — entre elas o `cosmic-config-derive`, que é
+> proc-macro e **executa em tempo de compilação**. Só o `Cargo.lock` fecha a
+> árvore; sem ele, uma re-resolução puxa código novo que roda como você.
 
 ## Referências
 

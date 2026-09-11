@@ -44,3 +44,17 @@ Minor: a notificacao de bateria baixa saiu para a issue #7, por recomendacao da
 revisao de qualidade.
 Minor: desktop-file-validate reprova Categories=COSMIC;, que e o que os applets
 oficiais usam. Consistencia com a plataforma vence.
+
+Review (review-*.md): 13 achados, 1 deles 🔴. Todos aplicados.
+
+O 🔴 nasceu dentro da revisao: ao aplicar a sugestao de qualidade de colapsar os
+arms do exemplo, deixei o `outro => {outro:?}` capturar o PermissionDenied, que
+carrega o caminho do device. Qualidade tinha dito para manter o arm proprio; eu
+apaguei. Aplicar achado e mudanca de codigo e merece a mesma desconfianca.
+
+Revalidado no painel depois das correcoes: 70% continua aparecendo.
+
+Minor: refresh() sem sessao enfileira em vez de ser no-op; 4 aberturas de popover
+com o dongle fora viram rajada de consultas na reconexao.
+Minor: BatteryReading::new e posicional, entao campo novo quebra a assinatura —
+ao contrario do que o #[non_exhaustive] sugere para o resto da API.

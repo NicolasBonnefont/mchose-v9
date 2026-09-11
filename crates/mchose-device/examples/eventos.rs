@@ -31,19 +31,20 @@ async fn main() {
                 println!("conectado — firmware do dongle {d}, do fone {h}");
             }
             DeviceEvent::Battery(b) => println!("bateria {}% — {:?}", b.percent, b.state),
-            DeviceEvent::NoResponse => {
-                println!("fone nao respondeu — pode estar desligado ou carregando");
-            }
-            DeviceEvent::Disconnected => println!("dongle removido"),
-            DeviceEvent::NoDevice => println!("dongle nao encontrado"),
+            // As frases sao do applet — o pack deste crate diz que aqui so se
+            // publica o estado. Duas copias divergiriam no primeiro card que
+            // mexesse na tabela.
+            // Arm proprio, e nao o `outro` abaixo: o `Debug` de
+            // `PermissionDenied` carrega o caminho do device, e isto aqui vai
+            // colado em issue de repositorio publico.
             DeviceEvent::PermissionDenied { .. } => {
-                println!("sem acesso ao dispositivo — instale a regra 72-mchose-v9.rules");
+                println!("sem acesso ao dispositivo — instale a regra udev");
             }
             DeviceEvent::Rejected(_) => {
                 rejeitados = rejeitados.saturating_add(1);
                 println!("pacote rejeitado (total: {rejeitados})");
             }
-            _ => println!("evento novo, ainda sem tratamento"),
+            outro => println!("{outro:?}"),
         }
     }
     println!("o fluxo terminou");

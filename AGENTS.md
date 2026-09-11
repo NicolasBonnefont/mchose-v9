@@ -39,11 +39,11 @@ presente, que é o que o EQ vai usar em runtime.
 
 | Ação | Comando |
 | --- | --- |
-| Teste | `cargo test` |
-| Lint | `cargo clippy --workspace -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
+| Teste | `cargo test --locked` |
+| Lint | `cargo clippy --workspace --locked -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
 | Formato | `cargo fmt --check` |
-| Build | `cargo build` |
-| Teste do caminho real | `cargo test -p mchose-device --no-run` e então o binário sob privilégio com `--ignored` |
+| Build | `cargo build --locked` |
+| Teste do caminho real | `cargo test --locked -p mchose-device --no-run` e então o binário sob privilégio com `--ignored` |
 | Testar o protocolo no hardware | `python3 spikes/battery_probe.py` |
 
 O lint **não** usa `--all-targets`, de propósito: os lints antipânico existem
@@ -69,6 +69,10 @@ inventadas.
 hardware. Rodaram em 11/09/2026 com a regra udev instalada, **sem privilégio**:
 descoberta em `/dev/hidraw5` e leitura de 70% descarregando. Ficam sob demanda
 porque dependem do dongle plugado.
+
+**`--locked` não é zelo.** Sete dependências vêm de branch móvel do `pop-os` sem
+commit fixado no manifesto, incluindo o `cosmic-config-derive`, que é proc-macro
+e executa em tempo de compilação. Só o `Cargo.lock` fecha a árvore.
 
 **Compilar nunca acontece com privilégio.** `cargo test` executa `build.rs` e
 proc-macros de toda a árvore; sob `sudo`, um PR que acrescente dependência vira

@@ -24,11 +24,11 @@ painel, o conteúdo do popover, e quando pedir uma leitura nova.
 - **`Disconnected` não diz "carregando".** `Disconnected` é o dongle saindo do
   USB, sempre transitório. O fone plugado para carregar deixa o dongle vivo e o
   rádio mudo, o que é `NoResponse` — e é lá que a frase de carregar mora
-  (`src/state.rs:57`).
+  (`src/state.rs:53`).
 - **`PermissionDenied` nomeia a regra e não mostra o caminho do device**
   (`src/state.rs:63`). O repositório é público e log colado vai parar lá.
 - **`Rejected` não muda a UI e seus bytes não chegam a lugar nenhum**
-  (`src/state.rs:70`).
+  (`src/state.rs:69`).
 - **O último percentual sobrevive a silêncio e a remoção.** Some o estado, não o
   número — apagar faria o painel piscar a cada oscilação do rádio.
 - **Versão de firmware conhecida não é apagada por um `Connected` com `None`**

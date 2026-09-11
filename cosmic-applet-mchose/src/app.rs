@@ -35,7 +35,7 @@ pub enum Message {
     Ready(Demand),
     Device(DeviceEvent),
     /// O fluxo caiu; ha nova tentativa a caminho.
-    StreamFailed(String),
+    StreamFailed,
 }
 
 impl cosmic::Application for Window {
@@ -88,12 +88,10 @@ impl cosmic::Application for Window {
                                     return;
                                 }
                             }
-                            let _ = output
-                                .send(Message::StreamFailed("fluxo encerrado".to_owned()))
-                                .await;
+                            let _ = output.send(Message::StreamFailed).await;
                         }
-                        Err(e) => {
-                            let _ = output.send(Message::StreamFailed(e.to_string())).await;
+                        Err(_) => {
+                            let _ = output.send(Message::StreamFailed).await;
                         }
                     }
                     tokio::time::sleep(RETENTATIVA).await;
@@ -121,26 +119,21 @@ impl cosmic::Application for Window {
                 self.demand = Some(demand);
             }
             Message::Device(evento) => self.state.apply(evento),
-            Message::StreamFailed(motivo) => {
+            Message::StreamFailed => {
                 self.demand = None;
-                self.state.stream_failed(&motivo);
+                self.state.stream_failed();
             }
         }
         Task::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
-        let texto = self
-            .state
-            .panel_percent()
-            .map_or_else(|| "—".to_owned(), |p| format!("{p}%"));
-
         let conteudo = widget::row::with_children(vec![
             widget::icon::from_name("audio-headphones-symbolic")
                 .symbolic(true)
                 .size(14)
                 .into(),
-            self.core.applet.text(texto).into(),
+            self.core.applet.text(self.state.panel_text()).into(),
         ])
         .spacing(4)
         .align_y(cosmic::iced::Alignment::Center);
@@ -162,15 +155,7 @@ impl cosmic::Application for Window {
                             }
                             let novo = Id::unique();
                             state.popup = Some(novo);
-                            let Some(principal) = state.core.main_window_id() else {
-                                return state.core.applet.get_popup_settings(
-                                    Id::NONE,
-                                    novo,
-                                    None,
-                                    None,
-                                    None,
-                                );
-                            };
+                            let principal = state.core.main_window_id().unwrap_or(Id::NONE);
                             let mut settings = state
                                 .core
                                 .applet
@@ -205,14 +190,9 @@ impl cosmic::Application for Window {
 impl Window {
     /// O conteudo do popover. Sem byte cru, sem caminho de device.
     fn popover(&self) -> Element<'_, Message> {
-        let percentual = self
-            .state
-            .panel_percent()
-            .map_or_else(|| "sem leitura".to_owned(), |p| format!("{p}%"));
-
         widget::column::with_children(vec![
             widget::text::title4("MCHOSE V9 PRO").into(),
-            widget::text::body(percentual).into(),
+            widget::text::body(self.state.popover_percent()).into(),
             widget::text::caption(self.state.status().to_owned()).into(),
             widget::divider::horizontal::default().into(),
             widget::text::caption(format!(

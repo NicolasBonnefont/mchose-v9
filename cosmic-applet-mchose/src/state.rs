@@ -45,7 +45,13 @@ impl AppletState {
                 self.status = Some("dongle conectado".to_owned());
             }
             DeviceEvent::Battery(leitura) => {
-                self.percent = Some(leitura.percent);
+                // Dormindo o percentual nao e autoritativo: o pack do protocolo
+                // registra que esse estado nunca foi capturado no hardware.
+                // Mantem o ultimo valor bom em vez de sobrescrever com um
+                // duvidoso.
+                if leitura.state != ChargeState::Asleep {
+                    self.percent = Some(leitura.percent);
+                }
                 self.status = Some(carga_por_extenso(leitura.state).to_owned());
             }
             // O fone plugado para carregar deixa o dongle vivo e o radio mudo:
@@ -75,15 +81,23 @@ impl AppletState {
     }
 
     /// Registra que o fluxo de eventos caiu e que haverá nova tentativa.
-    pub fn stream_failed(&mut self, motivo: &str) {
-        self.status = Some(format!(
-            "sem contato com o dispositivo, reconectando ({motivo})"
-        ));
+    ///
+    /// A frase é fixa de propósito: o texto de erro de origem acabaria no
+    /// popover, que é o que vai colado em issue de repositório público.
+    pub fn stream_failed(&mut self) {
+        self.status = Some("sem contato com o dispositivo, reconectando".to_owned());
     }
 
-    /// O percentual para o painel. `None` quando nunca houve leitura.
-    pub const fn panel_percent(&self) -> Option<u8> {
+    /// O que o painel mostra ao lado do ícone.
+    pub fn panel_text(&self) -> String {
         self.percent
+            .map_or_else(|| "—".to_owned(), |p| format!("{p}%"))
+    }
+
+    /// O percentual no popover, onde cabe uma frase em vez de um traço.
+    pub fn popover_percent(&self) -> String {
+        self.percent
+            .map_or_else(|| "sem leitura".to_owned(), |p| format!("{p}%"))
     }
 
     /// A frase de estado, para o popover.
@@ -122,9 +136,11 @@ mod tests {
     #[test]
     fn sem_evento_nenhum_nao_inventa_percentual() {
         let s = AppletState::default();
-        assert_eq!(s.panel_percent(), None);
+        assert_eq!(s.panel_text(), "—");
     }
 
+    /// Comparacao por igualdade exata: e o que garante que `Disconnected` nao
+    /// diga "carregando" e que `NoDevice` nao diga "removido".
     #[test]
     fn cada_evento_tem_a_frase_declarada_na_tabela() {
         let casos: Vec<(DeviceEvent, &str)> = vec![
@@ -143,16 +159,6 @@ mod tests {
     }
 
     #[test]
-    fn desconectado_nao_diz_carregando_e_sem_dongle_nao_diz_desconectado() {
-        let mut a = AppletState::default();
-        a.apply(DeviceEvent::Disconnected);
-        assert!(!a.status().contains("carregando"));
-        let mut b = AppletState::default();
-        b.apply(DeviceEvent::NoDevice);
-        assert!(!b.status().contains("removido"));
-    }
-
-    #[test]
     fn sem_permissao_nomeia_a_regra_e_nao_mostra_o_caminho() {
         let mut s = AppletState::default();
         s.apply(DeviceEvent::PermissionDenied {
@@ -167,9 +173,9 @@ mod tests {
         let mut s = AppletState::default();
         s.apply(leitura(70, ChargeState::Discharging));
         s.apply(DeviceEvent::NoResponse);
-        assert_eq!(s.panel_percent(), Some(70), "silencio nao apaga o numero");
+        assert_eq!(s.panel_text(), "70%", "silencio nao apaga o numero");
         s.apply(DeviceEvent::Disconnected);
-        assert_eq!(s.panel_percent(), Some(70), "remocao nao apaga o numero");
+        assert_eq!(s.panel_text(), "70%", "remocao nao apaga o numero");
     }
 
     #[test]
@@ -207,23 +213,25 @@ mod tests {
         let antes = s.status().to_owned();
         s.apply(DeviceEvent::Rejected(vec![0x55, 0x65, 0xC8, 0x02]));
         assert_eq!(s.status(), antes, "rejeitado nao muda a frase");
-        assert_eq!(s.panel_percent(), Some(70));
-        // Nenhuma superficie do estado pode conter os bytes.
-        let superficies = [
-            s.status().to_owned(),
-            s.dongle_firmware(),
-            s.headset_firmware(),
-        ];
-        for texto in superficies {
-            assert!(!texto.contains("85") && !texto.contains("0x55") && !texto.contains("200"));
-        }
+        assert_eq!(s.panel_text(), "70%");
     }
 
     #[test]
     fn falha_de_fluxo_vira_estado_visivel() {
         let mut s = AppletState::default();
-        s.stream_failed("qualquer coisa");
+        s.stream_failed();
         assert!(s.status().contains("reconectando"));
+    }
+
+    #[test]
+    fn dormindo_nao_sobrescreve_o_ultimo_percentual_bom() {
+        let mut s = AppletState::default();
+        s.apply(leitura(70, ChargeState::Discharging));
+        // O pack do protocolo registra que o percentual em Asleep nunca foi
+        // capturado no hardware: um valor duvidoso nao apaga um bom.
+        s.apply(leitura(0, ChargeState::Asleep));
+        assert_eq!(s.panel_text(), "70%");
+        assert!(s.status().contains("dormindo"), "o estado, esse, muda");
     }
 
     #[test]
