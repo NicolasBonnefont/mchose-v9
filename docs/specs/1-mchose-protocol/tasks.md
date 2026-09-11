@@ -28,7 +28,7 @@
   **Requisito:** `Comportamento alvo` → "Estado de carga", "Postura diante do inesperado", "Tráfego alheio é descartado em silêncio", "as três são a mesma coisa para quem consome"
   **Verificação:** `cargo test -p mchose-protocol battery::` — `55 65 46 02` → 70%/descarregando; status desconhecido preserva o percentual; 200 invalida e devolve os bytes; buffers de 0 a 3 bytes; 128 bytes; buffer sem report ID rejeitado; `0x06` descartado
 
-- [ ] ### 5. Decodificação da resposta de firmware
+- [x] ### 5. Decodificação da resposta de firmware
   **Arquivos:** Criar: `crates/mchose-protocol/src/firmware.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** tipos da task 3
   **Produces:** decodificador do feature `0xAA` com os quatro bytes crus e a forma textual derivada

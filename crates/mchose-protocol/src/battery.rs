@@ -4,6 +4,7 @@
 //! fone manda esse report sozinho quando o estado muda, entao o consumidor
 //! normal e passivo, sem polling.
 
+use crate::NoReading;
 use crate::request::{REPORT_BATTERY, battery_cmd};
 
 /// Estado de carga informado pelo fone.
@@ -48,24 +49,6 @@ pub struct BatteryReading {
     pub percent: u8,
     /// Estado de carga.
     pub state: ChargeState,
-}
-
-/// Ausencia de leitura.
-///
-/// Prefixo que nao casa, pacote curto demais e percentual fora de faixa sao a
-/// mesma coisa para quem consome: nao ha numero para mostrar. Por isso um tipo
-/// so, e nao uma taxonomia que o chamador teria de destrinchar para sempre
-/// tomar a mesma decisao.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct NoReading<'a> {
-    /// Bytes do pacote rejeitado, quando ele era do canal de bateria e portanto
-    /// merece registro.
-    ///
-    /// `None` quando o pacote nem era nosso: o mesmo `/dev/hidraw` carrega
-    /// teclas de midia e telefonia, que chegam a cada toque de volume. Tratar
-    /// isso como anomalia encheria o log em uso normal e afogaria o byte que
-    /// importa.
-    pub rejected: Option<&'a [u8]>,
 }
 
 /// Le a resposta de bateria.
