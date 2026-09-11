@@ -152,8 +152,13 @@ card #3, e o vocabulário do evento não pode induzi-lo ao erro.
 - Escrever configuração no dispositivo. Só os dois requests de consulta que o
   crate de protocolo constrói.
 - EQ, surround, áudio — card #4.
-- Instalar a regra udev. `install/99-mchose-v9.rules` já existe; instalar é
-  operação de máquina, não código deste card.
+- **Instalar** a regra udev numa máquina. Continua sendo operação de máquina.
+  **Corrigi-la** entrou no escopo depois de escrito este spec: verificar este
+  card exigia acesso ao `hidraw` como usuário, e ao instalar a regra descobriu-se
+  que ela nunca funcionou — numerada `99-`, marcava o dispositivo com `uaccess`
+  depois do `73-seat-late.rules`, que é quem converte a tag em ACL. Renomeada
+  para `72-`. Expansão de escopo assumida, não silenciosa: sem ela os dois testes
+  do caminho real continuariam sendo papel.
 - **Versionar qualquer regra udev nova.** Em particular, `/dev/uhid` não recebe
   `uaccess` nem `MODE=0666`: dar `uhid` ao usuário permite a qualquer processo
   da sessão criar um teclado HID virtual e injetar entrada no compositor — é
@@ -171,6 +176,7 @@ card #3, e o vocabulário do evento não pode induzi-lo ao erro.
 - `crates/mchose-device/**`
 - `AGENTS.md`
 - `docs/specs/2-mchose-device/**`
+- `install/**`
 
 O `Cargo.toml` da raiz acrescenta `crates/mchose-device` aos membros, e o
 `Cargo.lock`, versionado, muda na primeira dependência externa do projeto. No

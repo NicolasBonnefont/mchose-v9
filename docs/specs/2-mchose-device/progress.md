@@ -70,3 +70,14 @@ Minor: identificadores internos ainda misturam portugues e ingles. A superficie
 publica foi para o ingles, que e o que o card #3 consome.
 Minor: events() retem thread, fd O_RDWR e socket do monitor se o Stream cair.
 Minor: a codificacao do ioctl e x86/ARM; em ppc/mips _IOC_SIZEBITS difere.
+
+Verificacao real (11/09/2026): os dois testes #[ignore] rodaram SEM privilegio e
+passaram — /dev/hidraw5 descoberto e 70% descarregando lido. Prova o O_NONBLOCK,
+os ioctls e a conferencia de rdev contra o hardware.
+
+Para chegar la foi preciso corrigir um bug na regra udev, que estava no
+repositorio desde o primeiro dia e nunca funcionou: como 99-mchose-v9.rules ela
+marcava o dispositivo com uaccess DEPOIS do 73-seat-late.rules, que e quem
+converte a tag em ACL. A tag aparecia em CURRENT_TAGS e nada acontecia. Renomeada
+para 72-. Ninguem tinha percebido porque os testes que dependiam dela estavam
+ignorados e toda verificacao anterior usou sudo.

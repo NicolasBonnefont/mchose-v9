@@ -60,10 +60,10 @@ prova de que os bytes das fixtures vieram do hardware.
 capturados do dispositivo (`55 65 46 02`, `aa 01 00 00 01 02 ff 25`), não
 inventadas.
 
-**Mais 2 marcados `#[ignore]`, que nunca rodaram:** exercitam o ioctl e o
-`AsyncFd` contra o hardware, e dependem de acesso ao `hidraw` — que esta máquina
-não tem, porque `install/99-mchose-v9.rules` não foi instalada. A camada que
-fala com o kernel é, hoje, a única parte não provada do projeto.
+**Mais 2 marcados `#[ignore]`**, que exercitam o ioctl e o `AsyncFd` contra o
+hardware. Rodaram em 11/09/2026 com a regra udev instalada, **sem privilégio**:
+descoberta em `/dev/hidraw5` e leitura de 70% descarregando. Ficam sob demanda
+porque dependem do dongle plugado.
 
 **Compilar nunca acontece com privilégio.** `cargo test` executa `build.rs` e
 proc-macros de toda a árvore; sob `sudo`, um PR que acrescente dependência vira
@@ -113,8 +113,11 @@ firmware. Errar isso faz o applet falar com o fone errado.
 **PipeWire.** O EQ cria um sink virtual via `filter-chain`. Mexe na
 configuração de áudio do usuário, fora do repositório.
 
-**udev/logind.** `install/99-mchose-v9.rules` usa `TAG+="uaccess"` para entregar
-o `hidraw` ao usuário da sessão. Requer instalação com root e replug do dongle.
+**udev/logind.** `install/72-mchose-v9.rules` usa `TAG+="uaccess"` para entregar
+o `hidraw` ao usuário da sessão. **O número do arquivo importa:** quem converte a
+tag em ACL é o `73-seat-late.rules`, então uma regra acima de 73 marca o
+dispositivo tarde demais e nada acontece — foi o que houve enquanto ela se
+chamava `99-`. Requer instalação com root e `udevadm trigger` (ou replug).
 
 **GitHub.** `origin` é `github.com:NicolasBonnefont/mchose-v9`, repositório
 **público**; branch base é `master`. Os cards do ciclo sdd são as issues desse

@@ -125,10 +125,10 @@ código. Sobraram os dois que fixam convenção não óbvia: silêncio pende par
 sempre, sumiço é `NotConnected`. Teste novo que só confirme o que o fake faz não
 volta.
 
-**Os testes do caminho real nunca rodaram.** Os dois `#[ignore]` de
-`src/transport/hidraw.rs` dependem de acesso ao `hidraw`, e a regra udev não
-está instalada nesta máquina. O que está provado é a lógica sobre o fake; a
-camada de ioctl é papel até alguém rodar.
+**Os testes do caminho real rodaram em 11/09/2026**, sem privilégio, com a regra
+udev instalada: descoberta em `/dev/hidraw5` e leitura de 70% descarregando. O
+ioctl, o `O_NONBLOCK` e a conferência de `rdev` estão provados contra o hardware
+— não só sobre o fake. Continuam `#[ignore]` porque dependem do dongle plugado.
 
 **Compilar nunca acontece com privilégio.** `cargo test` executa `build.rs` e
 proc-macros de toda a árvore; sob `sudo`, um PR que acrescente dependência vira
