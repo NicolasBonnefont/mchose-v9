@@ -12,15 +12,15 @@ O único artefato que fala o protocolo é `spikes/battery_probe.py`, validado
 contra o hardware. Ele é prova de que os bytes vieram do dispositivo — não
 oráculo de comportamento. Diverge do que este card precisa em três pontos:
 
-- `spikes/battery_probe.py:27` identifica o dispositivo **só por VID/PID**.
+- `spikes/battery_probe.py:29` identifica o dispositivo **só por VID/PID**.
   Como `291d:385d` é compartilhado por S9 PRO, G9 PRO, V9 e V9 PRO, o probe
   pode abrir o fone errado. Funcionou por acidente: só há um desses
   dispositivos nesta máquina.
-- `spikes/battery_probe.py:56` aceita o pacote com `len >= 4` e não valida
+- `spikes/battery_probe.py:58` aceita o pacote com `len >= 4` e não valida
   faixa nenhuma: devolve `buf[2]` como percentual seja ele qual for. O
   mapeamento de estado com preservação do byte desconhecido o probe já faz
-  (`:57`) — o que falta é a validação.
-- `spikes/battery_probe.py:52` concatena os bytes de versão sem validar faixa.
+  (`:59`) — o que falta é a validação.
+- `spikes/battery_probe.py:54` concatena os bytes de versão sem validar faixa.
 
 ## Comportamento alvo
 
@@ -80,12 +80,21 @@ registro. Só vira registro o `0x55` ou `0xAA` com conteúdo inesperado.
 mesma coisa para quem consome:** não há leitura. O crate devolve ausência, não
 uma taxonomia de erros.
 
-**Constantes de tempo.** O crate expõe como constantes nomeadas o intervalo de
-300 ms entre o `SET_FEATURE` e o `GET_FEATURE` do `0xAA`
-(`spikes/battery_probe.py:43`) e o deadline de resposta de bateria. São dados
-do protocolo, não política do consumidor; declará-los aqui resolve a
-divergência entre o design (2 s) e o probe (3 s) antes que o card #2 escolha um
-terceiro número. O crate **não** sequencia nada: quem espera é o #2.
+**Constantes de tempo.** O crate é a fonte única dos dois tempos do protocolo,
+expostos como constantes nomeadas:
+
+| Constante | Valor | Procedência |
+| --- | --- | --- |
+| intervalo entre `SET_FEATURE` e `GET_FEATURE` do `0xAA` | **300 ms** | `spikes/battery_probe.py:45`, validado no hardware |
+| deadline de resposta de bateria | **2 s** | default do fabricante: `sendReportOnceSync` declara `timeOut: s = 2e3` |
+
+O deadline resolve uma divergência que existia entre os artefatos: o design
+dizia 2 s e o probe usava 3 s, número sem origem, escolhido ao escrever o
+probe. Fica o valor do fabricante, que tem procedência, e o probe foi alinhado
+para não haver duas verdades no repositório.
+
+São dados do protocolo, não política do consumidor. O crate **não** sequencia
+nada: quem espera os 300 ms e quem aplica o deadline é o card #2.
 
 ## Invariantes
 

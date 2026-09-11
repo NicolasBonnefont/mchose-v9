@@ -8,6 +8,8 @@ VID, PID = 0x291D, 0x385D
 REPORT_BATTERY, CMD_BATTERY = 0x55, 0x65
 REPORT_FW = 0xAA
 STATUS = {2: "descarregando", 3: "carregando", 4: "cheia", 26: "dormindo"}
+ESPERA_FEATURE_S = 0.3
+TIMEOUT_BATERIA_S = 2
 
 def _IOC(d, t, nr, size): return (d << 30) | (size << 16) | (ord(t) << 8) | nr
 HIDIOCGRAWINFO   = _IOC(2, 'H', 0x03, 8)
@@ -40,7 +42,7 @@ def read_firmware(fd, which="dongle"):
         fcntl.ioctl(fd, HIDIOCSFEATURE(len(buf)), buf, True)
     except OSError as e:
         return f"(envio falhou: {e})"
-    time.sleep(0.3)
+    time.sleep(ESPERA_FEATURE_S)
     out = bytearray(64)
     out[0] = REPORT_FW
     try:
@@ -78,7 +80,9 @@ def main():
     print(f"-> {' '.join(f'{b:02x}' for b in req[:4])} ...")
     os.write(fd, bytes(req))
 
-    deadline = time.time() + 3
+    # 2 s e o default do fabricante (sendReportOnceSync: timeOut = 2e3).
+    # Fonte unica do valor: docs/specs/1-mchose-protocol/spec.md.
+    deadline = time.time() + TIMEOUT_BATERIA_S
     while time.time() < deadline:
         r, _, _ = select.select([fd], [], [], deadline - time.time())
         if not r:
