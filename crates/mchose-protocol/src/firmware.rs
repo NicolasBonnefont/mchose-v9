@@ -1,12 +1,7 @@
 //! Decodificacao da versao de firmware.
 
-use crate::NoReading;
-use crate::request::REPORT_FIRMWARE;
-
-/// Byte que o firmware poe apos o report id numa resposta valida.
-const FIRMWARE_MARK: u8 = 0x01;
-/// Faixa do campo de versao dentro do buffer.
-const VERSION_RANGE: core::ops::Range<usize> = 2..6;
+use crate::request::{MARK_FIRMWARE, REPORT_FIRMWARE};
+use crate::{NoReading, reject};
 
 /// Versao de firmware do dongle ou do fone.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,18 +27,15 @@ impl FirmwareVersion {
 /// Le a resposta do feature report de firmware.
 pub fn decode_firmware(buf: &[u8]) -> Result<FirmwareVersion, NoReading<'_>> {
     let ours = buf.first() == Some(&REPORT_FIRMWARE);
-    let reject = || NoReading {
-        rejected: ours.then_some(buf),
-    };
+    // Os 6 primeiros bytes sao os que tem campo identificado neste canal.
+    let reject = || reject(ours, buf, 6);
 
-    if !ours || buf.get(1) != Some(&FIRMWARE_MARK) {
+    if !ours || buf.get(1) != Some(&MARK_FIRMWARE) {
         return Err(reject());
     }
 
-    let Some(version) = buf.get(VERSION_RANGE) else {
-        return Err(reject());
-    };
-    let Ok(bytes) = <[u8; 4]>::try_from(version) else {
+    // A versao ocupa os bytes 2..6.
+    let Some(&bytes) = buf.get(2..).and_then(<[u8]>::first_chunk::<4>) else {
         return Err(reject());
     };
 

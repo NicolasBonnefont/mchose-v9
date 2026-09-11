@@ -12,9 +12,9 @@ A stack foi escolhida contra a alternativa Python/GTK do projeto irmão
 `g5-control`, que resolve a mesma classe de problema nesta máquina. A troca foi
 deliberada, por causa do popover nativo e dos sliders do EQ.
 
-Toolchain fixada em `rust-toolchain.toml` (1.98.1); o `rustc` 1.75 do apt não
-serve. `Cargo.lock` é versionado. Sem dependências externas no crate de
-protocolo, de propósito.
+Toolchain fixada em `rust-toolchain.toml` (1.98.1) e instalada via `rustup`; o
+`rustc` 1.75 do apt não serve. `Cargo.lock` é versionado. Sem dependências
+externas no crate de protocolo, de propósito.
 
 Ambiente verificado: COSMIC 1.0.0 (`cosmic-comp` a830784), `cosmic-applets`
 1.0.15, PipeWire 1.6.8, Python 3.12.3, kernel 7.1.5-76070105-generic.
@@ -34,11 +34,16 @@ presente, que é o que o EQ vai usar em runtime.
 | Lint | `cargo clippy -p mchose-protocol -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
 | Formato | `cargo fmt --check` |
 | Build | `cargo build` |
-| Testar o protocolo no hardware | `sudo python3 spikes/battery_probe.py` |
+| Testar o protocolo no hardware | `python3 spikes/battery_probe.py` |
 
 O lint **não** usa `--all-targets`, de propósito: os lints antipânico existem
 para o código que recebe bytes do dispositivo, e `expect` num teste é como o
 teste declara falha.
+
+O probe precisa de `sudo` **enquanto** `install/99-mchose-v9.rules` não estiver
+instalada; com a regra aplicada e o dongle replugado, o `uaccess` entrega o
+`hidraw` ao usuário da sessão e o `sudo` deixa de ser necessário. Rodar como root
+um script que faz `O_RDWR` em canal vendor de firmware é privilégio a mais.
 
 O probe leu 70% descarregando, firmware `0012` no dongle e `0036` no fone — é a
 prova de que os bytes das fixtures vieram do hardware.

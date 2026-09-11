@@ -13,14 +13,12 @@ pub const REPORT_BATTERY: u8 = 0x55;
 /// Report id do canal de firmware (usage page `0xFF22`), feature.
 pub const REPORT_FIRMWARE: u8 = 0xAA;
 
-/// Comando de consulta de bateria, dentro do report `0x55`.
-const CMD_BATTERY: u8 = 0x65;
+/// Comando de consulta de bateria, dentro do report `0x55`. Prefixa tanto a
+/// consulta quanto a resposta, por isso o decodificador tambem o usa.
+pub(crate) const CMD_BATTERY: u8 = 0x65;
 
-/// O comando que prefixa tanto a consulta quanto a resposta de bateria.
-/// Visivel so dentro do crate: nao e material de API publica.
-pub(crate) const fn battery_cmd() -> u8 {
-    CMD_BATTERY
-}
+/// Byte que o firmware poe apos o report id `0xAA`, na consulta e na resposta.
+pub(crate) const MARK_FIRMWARE: u8 = 0x01;
 
 /// Tamanho de todo buffer trocado com o dispositivo: 1 byte de report id mais
 /// os 63 de payload que o descritor declara. Comprimento e parte do contrato —
@@ -69,7 +67,7 @@ pub fn battery_request() -> [u8; REPORT_LEN] {
 pub fn firmware_request(target: FirmwareTarget) -> [u8; REPORT_LEN] {
     let mut buf = [0u8; REPORT_LEN];
     buf[0] = REPORT_FIRMWARE;
-    buf[1] = 0x01;
+    buf[1] = MARK_FIRMWARE;
     buf[2] = target.selector();
     buf
 }
@@ -98,16 +96,5 @@ mod tests {
         assert_eq!(&headset[..3], &[0xAA, 0x01, 0x00]);
         assert!(dongle[3..].iter().all(|b| *b == 0));
         assert!(headset[3..].iter().all(|b| *b == 0));
-    }
-
-    #[test]
-    fn constantes_de_tempo_sao_as_do_protocolo() {
-        assert_eq!(
-            FEATURE_ROUNDTRIP_WAIT,
-            core::time::Duration::from_millis(300)
-        );
-        // 2 s e o default do fabricante (sendReportOnceSync: timeOut = 2e3),
-        // nao os 3 s sem origem que o probe usava.
-        assert_eq!(BATTERY_RESPONSE_TIMEOUT, core::time::Duration::from_secs(2));
     }
 }

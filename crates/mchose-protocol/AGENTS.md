@@ -15,7 +15,7 @@ dispositivo é o V9 PRO.
   o kernel.
 - **Esperar os 300 ms** entre o `SET_FEATURE` e o `GET_FEATURE`, e **aplicar o
   deadline de 2 s**. Os dois valores moram aqui porque são dados do protocolo
-  (`src/request.rs:32` e `:36`), mas quem dorme e quem desiste é o card #2.
+  (`src/request.rs:30` e `:34`), mas quem dorme e quem desiste é o card #2.
 - Decidir o que mostrar quando não há leitura. "Dormindo com o último valor
   conhecido" é política de UI, do card #3.
 - Registrar em log. O crate expõe o byte estranho; quem escreve linha de log é
@@ -28,28 +28,32 @@ dispositivo é o V9 PRO.
   diferentes. O reconhecimento exige nome junto — `src/device.rs:30`
 - **A exclusão de `V9 PRO 2` é avaliada antes da inclusão.** `"MCHOSE V9 PRO 2"`
   contém `"V9 PRO"`; na ordem inversa a exclusão seria decorativa —
-  `src/device.rs:39`
+  `src/device.rs:45`
 - **O nome é entrada controlada pelo dispositivo.** Vem do descritor USB, entra
   como bytes crus, e o que não for UTF-8 válido não reconhece em vez de entrar
-  em pânico — `src/device.rs:34`
+  em pânico — `src/device.rs:37`
+- **O nome termina no primeiro NUL.** O ioctl devolve buffer de tamanho fixo, e
+  o que vem depois do terminador é resto de buffer reaproveitado — pode nem ser
+  UTF-8. Validar o buffer inteiro faria um V9 PRO legítimo não reconhecer, em
+  silêncio. Achado da revisão do diff, não do spec — `src/device.rs:37`
 - **O kernel expõe duas formas do nome para o mesmo dispositivo.**
   `HIDIOCGRAWNAME` devolve `"C-Media Electronics Inc MCHOSE V9 PRO"`; o
   `ATTRS{product}` do udev devolve `"MCHOSE V9 PRO"`. Por isso o casamento é por
-  conteúdo e nunca por igualdade — `src/device.rs:39`
+  conteúdo e nunca por igualdade — `src/device.rs:45`
 - **Todo buffer trocado com o dispositivo tem 64 bytes:** 1 de report id mais os
-  63 do descritor. Comprimento é contrato, não detalhe — `src/request.rs:28`
+  63 do descritor. Comprimento é contrato, não detalhe — `src/request.rs:26`
 - **A API de request é fechada.** Dois construtores, nenhum que aceite report id
-  ou payload do chamador — `src/request.rs:60` e `:69`
+  ou payload do chamador — `src/request.rs:58` e `:67`
 - **No request de firmware, dongle é `1` e fone é `0`.** Inverter produz dois
-  valores plausíveis que ninguém detecta a olho — `src/request.rs:53`
+  valores plausíveis que ninguém detecta a olho — `src/request.rs:51`
 - **Percentual fora de `0..=100` não é leitura.** Número errado na tela é pior
-  que ausência de número — `src/battery.rs:72`
+  que ausência de número — `src/battery.rs:71`
 - **Byte de estado desconhecido não invalida a leitura.** O percentual continua
   valendo e o byte é preservado — `src/battery.rs:29`
 - **Rejeição só carrega os bytes quando o pacote era de um canal nosso.**
-  Tráfego alheio vira `None` — `src/battery.rs:60`
+  Tráfego alheio vira `None` — `src/lib.rs:51`
 - **A forma textual da versão é só exibição.** Comparação de ordem usa os quatro
-  bytes crus — `src/firmware.rs:27`
+  bytes crus — `src/firmware.rs:22`
 - **Nenhuma entrada causa pânico**, em nenhum tamanho. Acesso sempre por `get`,
   nunca por indexação — `src/lib.rs:10` e os lints do mesmo bloco
 
@@ -59,8 +63,10 @@ dispositivo é o V9 PRO.
 estrutura dele:
 
 1. `let ours = buf.first() == Some(&REPORT_X);` — decide se o pacote é nosso
-2. `let reject = || NoReading { rejected: ours.then_some(buf) };` — uma única
-   forma de falhar, que carrega os bytes só quando merecem registro
+2. `let reject = || reject(ours, buf, N);` — uma única forma de falhar, onde `N`
+   é quantos bytes daquele canal têm campo identificado. O helper mora em
+   `src/lib.rs:51` e é compartilhado: registrar byte de significado desconhecido
+   num repositório público é o que ele existe para impedir
 3. `buf.get(n)` com `let ... else` para cada campo, nunca `buf[n]`
 4. validação de faixa por último, com o mesmo `reject()`
 
@@ -85,7 +91,7 @@ está de um lado só dela.
 `Cargo.toml` da raiz lista os membros do workspace, e ganha uma linha quando
 `mchose-device` nascer.
 
-**Onde mora a condicional:** só uma, `FirmwareTarget` em `src/request.rs:53`,
+**Onde mora a condicional:** só uma, `FirmwareTarget` em `src/request.rs:51`,
 que escolhe entre dongle e fone. Não há flag, permissão nem variação por cliente.
 
 **O que muda junto:** `spikes/battery_probe.py` fala o mesmo protocolo. Ele não é
@@ -113,6 +119,11 @@ Em `hidraw` o id está sempre no byte 0, nas duas direções.
 verificação do spec não usa `--all-targets`: `expect` num teste é como o teste
 declara falha, e proibi-lo tornaria teste impossível de escrever. Os lints
 existem para o código que recebe bytes do dispositivo.
+
+**`NoReading.rejected` não devolve o buffer inteiro, de propósito.** São só os
+bytes com campo identificado — 4 no canal de bateria, 6 no de firmware. O resto
+do buffer de 64 B nunca foi mapeado, e quem registra em log costuma colar a linha
+num issue público. "Consertar" isso devolvendo tudo reabre o problema.
 
 **Os report ids `0xED` e `0x41` existem no descritor e não têm uso conhecido.**
 Não há construtor que os alcance, e isso é deliberado: escrita especulativa em

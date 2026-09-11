@@ -31,7 +31,13 @@ pub fn is_supported(vid: u16, pid: u16, product_name: &[u8]) -> bool {
     if vid != VENDOR_ID || pid != PRODUCT_ID {
         return false;
     }
-    let Ok(name) = str::from_utf8(product_name) else {
+    // O ioctl devolve buffer de tamanho fixo: o nome termina no primeiro NUL,
+    // e o que vem depois e resto do buffer reaproveitado, que pode nem ser
+    // UTF-8. Validar o buffer inteiro faria um V9 PRO legitimo nao reconhecer.
+    let Some(name_bytes) = product_name.split(|b| *b == 0).next() else {
+        return false;
+    };
+    let Ok(name) = str::from_utf8(name_bytes) else {
         return false;
     };
     // A exclusao vem ANTES da inclusao: "MCHOSE V9 PRO 2" contem "V9 PRO",
@@ -75,6 +81,30 @@ mod tests {
     fn rejeita_vid_pid_errado_mesmo_com_nome_certo() {
         assert!(!is_supported(0x3837, PRODUCT_ID, NOME_UDEV));
         assert!(!is_supported(VENDOR_ID, 0x6045, NOME_UDEV));
+    }
+
+    #[test]
+    fn reconhece_nome_seguido_de_padding_do_buffer_do_ioctl() {
+        // Buffer de tamanho fixo com o nome, NUL, e resto nao-UTF8: e o que o
+        // HIDIOCGRAWNAME devolve num buffer reaproveitado.
+        let mut buf = [0xFFu8; 256];
+        buf[..NOME_IOCTL.len()].copy_from_slice(NOME_IOCTL);
+        buf[NOME_IOCTL.len()] = 0;
+        assert!(is_supported(VENDOR_ID, PRODUCT_ID, &buf));
+
+        // Padding de NUL, o caso comum.
+        let mut zeros = [0u8; 256];
+        zeros[..NOME_UDEV.len()].copy_from_slice(NOME_UDEV);
+        assert!(is_supported(VENDOR_ID, PRODUCT_ID, &zeros));
+    }
+
+    #[test]
+    fn padding_nao_ressuscita_nome_excluido() {
+        let excluido = b"MCHOSE V9 PRO 2";
+        let mut buf = [0xFFu8; 256];
+        buf[..excluido.len()].copy_from_slice(excluido);
+        buf[excluido.len()] = 0;
+        assert!(!is_supported(VENDOR_ID, PRODUCT_ID, &buf));
     }
 
     #[test]

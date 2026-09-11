@@ -93,7 +93,7 @@ def main():
         if got:
             print(f"\n>>> BATERIA: {got[0]}%   estado: {got[1]}")
             return 0
-    print("\nNenhuma resposta com o prefixo esperado em 3s.")
+    print(f"\nNenhuma resposta com o prefixo esperado em {TIMEOUT_BATERIA_S}s.")
     return 2
 
 if __name__ == '__main__':

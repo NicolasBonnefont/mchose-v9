@@ -4,8 +4,8 @@
 //! fone manda esse report sozinho quando o estado muda, entao o consumidor
 //! normal e passivo, sem polling.
 
-use crate::NoReading;
-use crate::request::{REPORT_BATTERY, battery_cmd};
+use crate::request::{CMD_BATTERY, REPORT_BATTERY};
+use crate::{NoReading, reject};
 
 /// Estado de carga informado pelo fone.
 ///
@@ -56,11 +56,10 @@ pub fn decode_battery(buf: &[u8]) -> Result<BatteryReading, NoReading<'_>> {
     // Do nosso canal ou nao? E o que decide se a rejeicao merece registro.
     // Buffer vazio cai aqui como "nao e nosso", que e o desejado.
     let ours = buf.first() == Some(&REPORT_BATTERY);
-    let reject = || NoReading {
-        rejected: ours.then_some(buf),
-    };
+    // Os 4 primeiros bytes sao os que tem campo identificado neste canal.
+    let reject = || reject(ours, buf, 4);
 
-    if !ours || buf.get(1) != Some(&battery_cmd()) {
+    if !ours || buf.get(1) != Some(&CMD_BATTERY) {
         return Err(reject());
     }
 

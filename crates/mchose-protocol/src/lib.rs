@@ -29,6 +29,7 @@
 /// so, e nao uma taxonomia que o chamador teria de destrinchar para sempre
 /// tomar a mesma decisao.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[non_exhaustive]
 pub struct NoReading<'a> {
     /// Bytes do pacote rejeitado, quando ele era de um canal nosso e portanto
     /// merece registro.
@@ -38,6 +39,19 @@ pub struct NoReading<'a> {
     /// isso como anomalia encheria o log em uso normal e afogaria o byte que
     /// importa.
     pub rejected: Option<&'a [u8]>,
+}
+
+/// Monta a rejeicao, unica para os dois decodificadores.
+///
+/// `known` e quantos bytes daquele canal tem campo identificado. O resto do
+/// buffer de 64 B nunca foi mapeado, e quem registra em log costuma colar a
+/// linha num issue — de um repositorio publico. Registrar byte de significado
+/// desconhecido e o que a invariante "fixture e byte de protocolo, nao captura
+/// de sessao" existe para impedir.
+pub(crate) fn reject(ours: bool, buf: &[u8], known: usize) -> NoReading<'_> {
+    NoReading {
+        rejected: ours.then(|| buf.get(..known).unwrap_or(buf)),
+    }
 }
 
 pub mod battery;
