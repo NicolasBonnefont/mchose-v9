@@ -16,6 +16,12 @@ pub const REPORT_FIRMWARE: u8 = 0xAA;
 /// Comando de consulta de bateria, dentro do report `0x55`.
 const CMD_BATTERY: u8 = 0x65;
 
+/// O comando que prefixa tanto a consulta quanto a resposta de bateria.
+/// Visivel so dentro do crate: nao e material de API publica.
+pub(crate) const fn battery_cmd() -> u8 {
+    CMD_BATTERY
+}
+
 /// Tamanho de todo buffer trocado com o dispositivo: 1 byte de report id mais
 /// os 63 de payload que o descritor declara. Comprimento e parte do contrato —
 /// o kernel rejeita escrita de tamanho diferente.

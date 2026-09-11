@@ -21,7 +21,7 @@
   **Requisito:** `Comportamento alvo` → "Bateria", "Firmware", "Constantes de tempo"; invariantes "a API de request é fechada" e "todo buffer de request tem exatamente 64 bytes"
   **Verificação:** `cargo test -p mchose-protocol request::` — `len() == 64`, prefixos `[0x55,0x65,0x01]`, `[0xAA,0x01,0x01]` e `[0xAA,0x01,0x00]`, resto zerado
 
-- [ ] ### 4. Decodificação da resposta de bateria
+- [x] ### 4. Decodificação da resposta de bateria
   **Arquivos:** Criar: `crates/mchose-protocol/src/battery.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** tipos da task 3
   **Produces:** decodificador de `0x55`/`0x65`, estado de carga e a falha única que carrega os bytes
