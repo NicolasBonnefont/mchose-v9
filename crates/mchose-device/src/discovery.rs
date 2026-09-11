@@ -40,13 +40,32 @@ fn identifica(uevent: &str) -> Option<(u16, u16, &[u8])> {
     Some((vid, pid, nome?))
 }
 
+/// O dispositivo que casou.
+///
+/// Carrega o `rdev` porque o nome nao basta: o minor do hidraw e reciclado pelo
+/// kernel, e entre identificar e abrir cabe uma reenumeracao. Comparar o `rdev`
+/// depois do `open` e o que amarra os dois momentos ao mesmo dispositivo.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct Found {
+    /// O device node a abrir.
+    pub(crate) path: PathBuf,
+    /// `major:minor` lido do sysfs no momento da identificacao.
+    pub(crate) rdev: u64,
+}
+
+/// Le `major:minor` do arquivo `dev` do sysfs.
+fn parse_dev(texto: &str) -> Option<u64> {
+    let (major, minor) = texto.trim().split_once(':')?;
+    Some(libc::makedev(major.parse().ok()?, minor.parse().ok()?))
+}
+
 /// Procura o V9 PRO sob uma raiz de sysfs, devolvendo o device node.
 ///
 /// `raiz` e `/sys/class/hidraw` em producao; nos testes, uma arvore falsa.
 /// Nenhum descritor de dispositivo e aberto aqui: quem nao casou nunca chega a
 /// ser tocado.
-pub fn find_device(raiz: &Path) -> Option<PathBuf> {
-    let mut achados: Vec<String> = Vec::new();
+pub(crate) fn find_device(raiz: &Path) -> Option<Found> {
+    let mut achados: Vec<(String, u64)> = Vec::new();
     for entrada in std::fs::read_dir(raiz).ok()? {
         let Ok(entrada) = entrada else { continue };
         let nome_hidraw = entrada.file_name();
@@ -61,14 +80,23 @@ pub fn find_device(raiz: &Path) -> Option<PathBuf> {
             continue;
         };
         if mchose_protocol::device::is_supported(vid, pid, nome) {
-            achados.push(nome_hidraw.to_owned());
+            let Ok(dev) = std::fs::read_to_string(entrada.path().join("dev")) else {
+                continue;
+            };
+            let Some(rdev) = parse_dev(&dev) else {
+                continue;
+            };
+            achados.push((nome_hidraw.to_owned(), rdev));
         }
     }
     // Ordena para que a escolha nao dependa da ordem do diretorio, que o kernel
     // nao garante.
     achados.sort();
-    let primeiro = achados.first()?;
-    Some(Path::new("/dev").join(primeiro))
+    let (nome, rdev) = achados.first()?;
+    Some(Found {
+        path: Path::new("/dev").join(nome),
+        rdev: *rdev,
+    })
 }
 
 #[cfg(test)]
@@ -81,10 +109,12 @@ mod tests {
     /// `device/uevent`. E a forma real — conferida em /sys/class/hidraw.
     fn sysfs(entradas: &[(&str, &str)]) -> TempDir {
         let dir = tempfile::tempdir().unwrap();
-        for (nome, uevent) in entradas {
-            let d = dir.path().join(nome).join("device");
+        for (i, (nome, uevent)) in entradas.iter().enumerate() {
+            let base = dir.path().join(nome);
+            let d = base.join("device");
             fs::create_dir_all(&d).unwrap();
             fs::write(d.join("uevent"), uevent).unwrap();
+            fs::write(base.join("dev"), format!("239:{i}\n")).unwrap();
         }
         dir
     }
@@ -105,7 +135,7 @@ mod tests {
     fn acha_o_v9_pro_entre_outros_dispositivos() {
         let dir = sysfs(&[("hidraw0", TECLADO), ("hidraw5", V9_PRO)]);
         let achado = find_device(dir.path()).expect("V9 PRO presente");
-        assert_eq!(achado.file_name().unwrap(), "hidraw5");
+        assert_eq!(achado.path.file_name().unwrap(), "hidraw5");
     }
 
     #[test]
@@ -138,12 +168,19 @@ mod tests {
         let achado = find_device(std::path::Path::new("/sys/class/hidraw"));
         assert!(achado.is_some(), "dongle plugado? nada casou no sysfs real");
         println!("achado: {achado:?}");
+        // Confere o rdev contra o proprio device node.
+        if let Some(f) = achado {
+            use std::os::unix::fs::MetadataExt;
+            let meta = std::fs::metadata(&f.path).expect("device node existe");
+            assert_eq!(meta.rdev(), f.rdev, "rdev do sysfs difere do device node");
+        }
     }
 
     #[test]
     fn devolve_o_caminho_do_device_node_nao_o_do_sysfs() {
         let dir = sysfs(&[("hidraw5", V9_PRO)]);
         let achado = find_device(dir.path()).expect("presente");
-        assert_eq!(achado, std::path::Path::new("/dev/hidraw5"));
+        assert_eq!(achado.path, std::path::Path::new("/dev/hidraw5"));
+        assert_eq!(achado.rdev, libc::makedev(239, 0));
     }
 }

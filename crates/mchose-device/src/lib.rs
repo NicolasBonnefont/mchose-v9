@@ -20,7 +20,7 @@
         clippy::panic
     )
 )]
-pub mod discovery;
+pub(crate) mod discovery;
 pub(crate) mod machine;
 
 // A superficie publica do crate e o evento e, na task 6, o `Stream`. O trait de
@@ -38,10 +38,14 @@ pub(crate) mod transport;
 pub struct Demand(tokio::sync::mpsc::Sender<()>);
 
 impl Demand {
-    /// Pede uma leitura. Com o dongle ausente e no-op — nunca erro que encerre
-    /// o fluxo.
-    pub async fn refresh(&self) {
-        let _ = self.0.send(()).await;
+    /// Pede uma leitura. Com o dongle ausente e no-op — nunca erro, e nunca
+    /// espera.
+    ///
+    /// Sincrona de proposito: sem sessao ninguem drena o canal, e um `send`
+    /// assincrono penduraria o chamador assim que a fila enchesse. Abrir o
+    /// popover nao pode travar o painel.
+    pub fn refresh(&self) {
+        let _ = self.0.try_send(());
     }
 }
 
@@ -74,7 +78,7 @@ pub fn events() -> std::io::Result<(
                 return;
             };
             runtime.block_on(async move {
-                let Ok(fonte) = hotplug::KernelSource::new(emissor.clone()) else {
+                let Ok(fonte) = hotplug::KernelSource::new() else {
                     return;
                 };
                 hotplug::supervise(fonte, rx_pedidos, move |e| {

@@ -33,6 +33,9 @@ pub enum DeviceEvent {
     Rejected(Vec<u8>),
     /// O transporte morreu. Quem reata e o laco de hotplug.
     Disconnected,
+    /// Nenhum `hidraw` casa. Emitido uma vez por ausencia, para o applet poder
+    /// distinguir "sem dongle" de "ainda carregando".
+    NoDevice,
     /// Abrir o dispositivo devolveu `EACCES`.
     ///
     /// **Nao e "sem dongle".** Significa que `install/99-mchose-v9.rules` nao
@@ -41,7 +44,7 @@ pub enum DeviceEvent {
     /// *instale a regra*, e nao *fone desligado*.
     PermissionDenied {
         /// O device node que nao abriu.
-        caminho: std::path::PathBuf,
+        path: std::path::PathBuf,
     },
 }
 
@@ -67,11 +70,11 @@ async fn feature_version<T: Transport>(
 }
 
 /// O que a espera do laco produziu.
-enum Passo {
-    Leu(usize),
-    Prazo,
-    Pedido,
-    Morreu,
+enum Step {
+    Read(usize),
+    Deadline,
+    Request,
+    Died,
 }
 
 /// Conduz uma sessao do inicio ao fim, publicando eventos por `emit`.
@@ -80,10 +83,9 @@ enum Passo {
 /// consulta.
 pub(crate) async fn run_session<T, F>(
     mut transport: T,
-    mut demand: tokio::sync::mpsc::Receiver<()>,
+    demand: &mut tokio::sync::mpsc::Receiver<()>,
     mut emit: F,
-) -> tokio::sync::mpsc::Receiver<()>
-where
+) where
     T: Transport,
     F: FnMut(DeviceEvent),
 {
@@ -93,71 +95,67 @@ where
 
     if transport.write(&battery_request()).await.is_err() {
         emit(DeviceEvent::Disconnected);
-        return demand;
+        return;
     }
-    let mut aguardando = true;
+    let mut awaiting = true;
     // Um consumidor que so escuta — um binario de terminal, por exemplo — nao
     // segura alca de consulta. O canal fechar significa "nunca havera pedido",
     // nao "acabou a sessao": tratar como fim faria esse consumidor nunca
     // receber evento nenhum.
-    let mut ha_quem_peca = true;
+    let mut has_requester = true;
 
     let mut buf = [0u8; REPORT_LEN];
     loop {
         // O emprestimo de `transport` e de `buf` termina no fim deste bloco,
         // liberando os dois para a acao logo abaixo. Abandonar a leitura no
         // meio e seguro: nada foi consumido do descritor.
-        let passo = {
+        let step = {
             let leitura = transport.read(&mut buf);
             tokio::pin!(leitura);
-            if aguardando {
-                tokio::select! {
-                    // `biased` torna a ordem deterministica: leitura pendente
-                    // tem prioridade sobre pedido novo.
-                    biased;
-                    r = tokio::time::timeout(BATTERY_RESPONSE_TIMEOUT, &mut leitura) => match r {
-                        Err(_) => Passo::Prazo,
-                        Ok(Ok(n)) => Passo::Leu(n),
-                        Ok(Err(_)) => Passo::Morreu,
-                    },
-                    p = demand.recv(), if ha_quem_peca => match p {
-                        Some(()) => Passo::Pedido,
-                        None => { ha_quem_peca = false; continue }
-                    },
+            // Prazo ausente e um futuro que nunca resolve: assim o `select` tem
+            // sempre a mesma forma, em vez de duas copias da mesma maquina.
+            let prazo = async {
+                if awaiting {
+                    tokio::time::sleep(BATTERY_RESPONSE_TIMEOUT).await;
+                } else {
+                    std::future::pending::<()>().await;
                 }
-            } else {
-                tokio::select! {
-                    biased;
-                    r = &mut leitura => match r {
-                        Ok(n) => Passo::Leu(n),
-                        Err(_) => Passo::Morreu,
-                    },
-                    p = demand.recv(), if ha_quem_peca => match p {
-                        Some(()) => Passo::Pedido,
-                        None => { ha_quem_peca = false; continue }
-                    },
-                }
+            };
+            tokio::pin!(prazo);
+            tokio::select! {
+                // `biased` torna a ordem deterministica: leitura pendente tem
+                // prioridade sobre prazo e sobre pedido novo.
+                biased;
+                r = &mut leitura => match r {
+                    Ok(n) => Step::Read(n),
+                    Err(_) => Step::Died,
+                },
+                () = &mut prazo => Step::Deadline,
+                p = demand.recv(), if has_requester => match p {
+                    Some(()) => Step::Request,
+                    None => { has_requester = false; continue }
+                },
             }
         };
 
-        match passo {
-            Passo::Morreu => {
+        match step {
+            Step::Died => {
                 emit(DeviceEvent::Disconnected);
-                return demand;
+                return;
             }
-            Passo::Prazo => {
+            Step::Deadline => {
                 emit(DeviceEvent::NoResponse);
-                aguardando = false;
+                awaiting = false;
             }
-            Passo::Pedido => {
+            Step::Request => {
                 if transport.write(&battery_request()).await.is_err() {
                     emit(DeviceEvent::Disconnected);
-                    return demand;
+                    return;
                 }
-                aguardando = true;
+                awaiting = true;
             }
-            Passo::Leu(n) => {
-                aguardando = false;
+            Step::Read(n) => {
+                awaiting = false;
                 let Some(pacote) = buf.get(..n) else { continue };
                 match decode_battery(pacote) {
                     Ok(leitura) => emit(DeviceEvent::Battery(leitura)),
@@ -187,10 +185,10 @@ mod tests {
 
     /// Roda a sessao ate ela terminar, colecionando os eventos.
     async fn colher(t: FakeTransport) -> Vec<DeviceEvent> {
-        let (tx, rx) = tokio::sync::mpsc::channel(4);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(4);
         drop(tx);
         let mut eventos = Vec::new();
-        let _ = run_session(t, rx, |e| eventos.push(e)).await;
+        run_session(t, &mut rx, |e| eventos.push(e)).await;
         eventos
     }
 
@@ -225,12 +223,12 @@ mod tests {
         // fone fica em silencio para sempre. A alca segue viva, entao quem
         // corta a sessao e o teste — nao o fim do canal.
         let t = FakeTransport::new().com_feature(0xAA, FW_DONGLE.to_vec());
-        let (_tx, rx) = tokio::sync::mpsc::channel(4);
+        let (_tx, mut rx) = tokio::sync::mpsc::channel(4);
         let eventos = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
         let colecionador = std::sync::Arc::clone(&eventos);
         let _ = tokio::time::timeout(
             std::time::Duration::from_secs(30),
-            run_session(t, rx, move |e| colecionador.lock().unwrap().push(e)),
+            run_session(t, &mut rx, move |e| colecionador.lock().unwrap().push(e)),
         )
         .await;
         let vistos = eventos.lock().unwrap().clone();
@@ -280,11 +278,11 @@ mod tests {
             .com_leitura(BATERIA.to_vec())
             .com_leitura(BATERIA.to_vec())
             .que_some_depois_das_leituras();
-        let (tx, rx) = tokio::sync::mpsc::channel(4);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(4);
         tx.send(()).await.expect("pedido");
         drop(tx);
         let mut eventos = Vec::new();
-        let _ = run_session(t, rx, |e| eventos.push(e)).await;
+        run_session(t, &mut rx, |e| eventos.push(e)).await;
         let leituras = eventos
             .iter()
             .filter(|e| matches!(e, DeviceEvent::Battery(_)))
@@ -294,9 +292,9 @@ mod tests {
 
     async fn escritas_da_sessao(t: FakeTransport) -> Vec<Vec<u8>> {
         let reg = t.registro();
-        let (tx, rx) = tokio::sync::mpsc::channel(4);
+        let (tx, mut rx) = tokio::sync::mpsc::channel(4);
         drop(tx);
-        let _ = run_session(t, rx, |_| {}).await;
+        run_session(t, &mut rx, |_| {}).await;
         reg.lock().unwrap().clone()
     }
 

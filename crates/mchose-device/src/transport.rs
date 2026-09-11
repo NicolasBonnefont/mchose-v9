@@ -141,29 +141,11 @@ impl Transport for FakeTransport {
 }
 
 #[cfg(test)]
+// Os testes aqui fixam so o que o dublê promete e nao e obvio: silencio pende
+// para sempre, e sumico e `NotConnected`. Quem exercita o fake devolvendo o que
+// foi enfileirado testa o dublê, nao o codigo — quem prova isso e `machine`.
 mod tests {
     use super::*;
-
-    /// Capturado do hardware em 11/09/2026.
-    const BATERIA: &[u8] = &[0x55, 0x65, 0x46, 0x02];
-    const FIRMWARE: &[u8] = &[0xAA, 0x01, 0x00, 0x00, 0x01, 0x02];
-
-    #[tokio::test]
-    async fn fake_devolve_o_pacote_capturado() {
-        let mut t = FakeTransport::new().com_leitura(BATERIA.to_vec());
-        let mut buf = [0u8; 64];
-        let n = t.read(&mut buf).await.expect("leitura");
-        assert_eq!(&buf[..n], BATERIA);
-    }
-
-    #[tokio::test]
-    async fn fake_registra_o_que_foi_escrito() {
-        let mut t = FakeTransport::new();
-        t.write(&[0x55, 0x65, 0x01]).await.expect("escrita");
-        let reg = t.registro();
-        let escrito = reg.lock().unwrap().clone();
-        assert_eq!(escrito, vec![vec![0x55, 0x65, 0x01]]);
-    }
 
     #[tokio::test]
     async fn fake_encena_silencio() {
@@ -176,28 +158,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn fake_encena_truncamento() {
-        let mut t = FakeTransport::new().com_leitura(vec![0x55, 0x65]);
-        let mut buf = [0u8; 64];
-        let n = t.read(&mut buf).await.expect("leitura curta");
-        assert_eq!(n, 2);
-    }
-
-    #[tokio::test]
     async fn fake_encena_o_dongle_sumindo() {
         let mut t = FakeTransport::new().que_some();
         let mut buf = [0u8; 64];
         let e = t.read(&mut buf).await.expect_err("sumiu");
         assert_eq!(e.kind(), std::io::ErrorKind::NotConnected);
-    }
-
-    #[tokio::test]
-    async fn fake_responde_o_feature_de_firmware() {
-        let mut t = FakeTransport::new().com_feature(0xAA, FIRMWARE.to_vec());
-        t.set_feature(&[0xAA, 0x01, 0x01]).await.expect("set");
-        let mut buf = [0u8; 64];
-        let n = t.get_feature(0xAA, &mut buf).await.expect("get");
-        assert_eq!(&buf[..n], FIRMWARE);
     }
 }
 pub(crate) mod hidraw;

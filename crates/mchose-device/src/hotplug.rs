@@ -21,7 +21,13 @@ pub(crate) trait Source {
     /// O transporte que esta fonte entrega.
     type Out: Transport;
     /// Espera o proximo dispositivo. `None` encerra a supervisao.
-    fn next(&mut self) -> impl Future<Output = Option<Self::Out>>;
+    ///
+    /// Recebe `emit` em vez de guardar um canal proprio: ha um caminho so de
+    /// publicacao de evento, e a fonte nao precisa saber para onde ele vai.
+    fn next(
+        &mut self,
+        emit: &mut dyn FnMut(DeviceEvent),
+    ) -> impl Future<Output = Option<Self::Out>>;
 }
 
 /// Conduz sessoes sucessivas, uma por vida do dongle.
@@ -33,17 +39,16 @@ pub(crate) async fn supervise<S, F>(
     S: Source,
     F: FnMut(DeviceEvent),
 {
-    while let Some(transporte) = source.next().await {
+    while let Some(transporte) = source.next(&mut emit).await {
         // A alca de consulta atravessa as sessoes: o consumidor nao reassina
         // nada quando o dongle volta.
-        demand = run_session(transporte, demand, &mut emit).await;
+        run_session(transporte, &mut demand, &mut emit).await;
     }
 }
 
 /// A fonte real: monitor do kernel mais enumeracao no sysfs.
 pub(crate) struct KernelSource {
     monitor: AsyncMonitor,
-    eventos: tokio::sync::mpsc::Sender<DeviceEvent>,
 }
 
 impl KernelSource {
@@ -51,29 +56,47 @@ impl KernelSource {
     /// plugado quando o applet abre precisa disparar a mesma consulta que uma
     /// chegada dispararia, senao o painel fica esperando um push que pode nao
     /// vir.
-    pub(crate) fn new(eventos: tokio::sync::mpsc::Sender<DeviceEvent>) -> std::io::Result<Self> {
-        let monitor = AsyncMonitor::new()?;
-        Ok(Self { monitor, eventos })
+    pub(crate) fn new() -> std::io::Result<Self> {
+        Ok(Self {
+            monitor: AsyncMonitor::new()?,
+        })
     }
 }
 
 impl Source for KernelSource {
     type Out = HidrawTransport;
 
-    async fn next(&mut self) -> Option<HidrawTransport> {
+    async fn next(&mut self, emit: &mut dyn FnMut(DeviceEvent)) -> Option<HidrawTransport> {
+        // Os avisos saem uma vez por estado: o monitor acorda a cada mudanca em
+        // qualquer hidraw da maquina, e repetir o evento encheria o applet.
+        let mut avisou_ausencia = false;
+        let mut avisou_permissao = false;
         loop {
-            if let Some(caminho) = crate::discovery::find_device(Path::new(RAIZ_SYSFS)) {
-                match HidrawTransport::open(&caminho) {
-                    Ok(t) => return Some(t),
+            match crate::discovery::find_device(Path::new(RAIZ_SYSFS)) {
+                Some(achado) => match HidrawTransport::open(&achado.path) {
+                    // O `rdev` amarra identificacao e uso ao mesmo dispositivo:
+                    // o minor do hidraw e reciclado pelo kernel, e entre achar e
+                    // abrir cabe uma reenumeracao. Divergiu, descarta e tenta de
+                    // novo — escrever no token FIDO que herdou o numero seria o
+                    // resultado de confiar no nome.
+                    Ok((transporte, rdev)) if rdev == achado.rdev => return Some(transporte),
+                    Ok(_) => {}
                     Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
-                        let _ = self
-                            .eventos
-                            .try_send(DeviceEvent::PermissionDenied { caminho });
+                        if !avisou_permissao {
+                            emit(DeviceEvent::PermissionDenied { path: achado.path });
+                            avisou_permissao = true;
+                        }
                     }
                     Err(_) => {}
+                },
+                None => {
+                    if !avisou_ausencia {
+                        emit(DeviceEvent::NoDevice);
+                        avisou_ausencia = true;
+                    }
                 }
             }
-            self.monitor.proxima_mudanca().await?;
+            self.monitor.proxima_mudanca().await.ok()?;
         }
     }
 }
@@ -98,11 +121,19 @@ impl AsyncMonitor {
     /// O evento apenas sinaliza: a identificacao vem sempre do sysfs, nunca dos
     /// atributos do evento — um dispositivo virtual nao tem pai USB e nao
     /// carrega `idVendor`.
-    async fn proxima_mudanca(&mut self) -> Option<()> {
-        let mut pronto = self.fd.readable_mut().await.ok()?;
-        let houve = pronto.get_inner_mut().iter().next().is_some();
-        pronto.clear_ready();
-        houve.then_some(())
+    async fn proxima_mudanca(&mut self) -> std::io::Result<()> {
+        loop {
+            let mut pronto = self.fd.readable_mut().await?;
+            if pronto.get_inner_mut().iter().next().is_some() {
+                // Nao limpa a prontidao: pode haver mais mensagem enfileirada, e
+                // o epoll aqui e edge-triggered. A proxima chamada drena.
+                return Ok(());
+            }
+            // Nenhuma mensagem: prontidao falsa, ou evento reprovado no filtro.
+            // Devolver "fim" aqui encerraria o `Stream` para sempre — que e
+            // exatamente o que a invariante do fluxo existe para impedir.
+            pronto.clear_ready();
+        }
     }
 }
 
@@ -126,7 +157,7 @@ mod tests {
 
     impl Source for Fila {
         type Out = FakeTransport;
-        async fn next(&mut self) -> Option<FakeTransport> {
+        async fn next(&mut self, _emit: &mut dyn FnMut(DeviceEvent)) -> Option<FakeTransport> {
             self.0.next()
         }
     }

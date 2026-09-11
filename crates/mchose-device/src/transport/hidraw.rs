@@ -33,14 +33,24 @@ impl HidrawTransport {
     /// `PermissionDenied` aqui e um estado proprio, nao "sem dongle": significa
     /// que `install/99-mchose-v9.rules` nao foi instalada, e quem mostra a
     /// mensagem precisa poder dizer *instale a regra*.
-    pub(crate) fn open(caminho: &Path) -> io::Result<Self> {
+    pub(crate) fn open(caminho: &Path) -> io::Result<(Self, u64)> {
+        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
         let arquivo = std::fs::OpenOptions::new()
             .read(true)
             .write(true)
+            // `AsyncFd` **exige** o descritor em modo nao-bloqueante: e o
+            // `WouldBlock` devolvido pela leitura que diz a ele que a prontidao
+            // era falsa. Sem isso, a prontidao fica em cache depois do primeiro
+            // pacote e a leitura seguinte estaciona a thread do runtime.
+            .custom_flags(libc::O_NONBLOCK)
             .open(caminho)?;
-        Ok(Self {
-            fd: AsyncFd::with_interest(arquivo, Interest::READABLE)?,
-        })
+        let rdev = arquivo.metadata()?.rdev();
+        Ok((
+            Self {
+                fd: AsyncFd::with_interest(arquivo, Interest::READABLE | Interest::WRITABLE)?,
+            },
+            rdev,
+        ))
     }
 
     /// Chama um ioctl de feature no descritor.
@@ -76,8 +86,13 @@ impl Transport for HidrawTransport {
 
     async fn write(&mut self, data: &[u8]) -> io::Result<()> {
         use std::io::Write;
-        let mut arquivo: &std::fs::File = self.fd.get_ref();
-        let escrito = arquivo.write(data)?;
+        let escrito = self
+            .fd
+            .async_io(Interest::WRITABLE, |arquivo| {
+                let mut arquivo: &std::fs::File = arquivo;
+                arquivo.write(data)
+            })
+            .await?;
         if escrito != data.len() {
             return Err(io::Error::new(
                 io::ErrorKind::WriteZero,
@@ -115,9 +130,14 @@ mod tests {
         use mchose_protocol::battery::decode_battery;
         use mchose_protocol::request::{REPORT_LEN, battery_request};
 
-        let caminho =
+        let achado =
             crate::discovery::find_device(Path::new("/sys/class/hidraw")).expect("dongle plugado");
-        let mut t = HidrawTransport::open(&caminho).expect("sem permissao? instale a regra udev");
+        let (mut t, rdev) =
+            HidrawTransport::open(&achado.path).expect("sem permissao? instale a regra udev");
+        assert_eq!(
+            rdev, achado.rdev,
+            "o node trocou de dono entre achar e abrir"
+        );
         t.write(&battery_request()).await.expect("consulta");
         let mut buf = [0u8; REPORT_LEN];
         let n = t.read(&mut buf).await.expect("resposta");
