@@ -33,6 +33,16 @@ pub enum DeviceEvent {
     Rejected(Vec<u8>),
     /// O transporte morreu. Quem reata e o laco de hotplug.
     Disconnected,
+    /// Abrir o dispositivo devolveu `EACCES`.
+    ///
+    /// **Nao e "sem dongle".** Significa que `install/99-mchose-v9.rules` nao
+    /// foi instalada — verificado em 11/09/2026: sem a regra, `/dev/hidraw5`
+    /// fica `crw------- root root`. Quem mostra a mensagem precisa poder dizer
+    /// *instale a regra*, e nao *fone desligado*.
+    PermissionDenied {
+        /// O device node que nao abriu.
+        caminho: std::path::PathBuf,
+    },
 }
 
 /// Le uma versao de firmware. Devolve `None` se o dispositivo nao responder —
@@ -68,11 +78,12 @@ enum Passo {
 ///
 /// Retorna quando o transporte morre ou quando o consumidor larga a alca de
 /// consulta.
-pub async fn run_session<T, F>(
+pub(crate) async fn run_session<T, F>(
     mut transport: T,
     mut demand: tokio::sync::mpsc::Receiver<()>,
     mut emit: F,
-) where
+) -> tokio::sync::mpsc::Receiver<()>
+where
     T: Transport,
     F: FnMut(DeviceEvent),
 {
@@ -82,7 +93,7 @@ pub async fn run_session<T, F>(
 
     if transport.write(&battery_request()).await.is_err() {
         emit(DeviceEvent::Disconnected);
-        return;
+        return demand;
     }
     let mut aguardando = true;
     // Um consumidor que so escuta — um binario de terminal, por exemplo — nao
@@ -132,7 +143,7 @@ pub async fn run_session<T, F>(
         match passo {
             Passo::Morreu => {
                 emit(DeviceEvent::Disconnected);
-                return;
+                return demand;
             }
             Passo::Prazo => {
                 emit(DeviceEvent::NoResponse);
@@ -141,7 +152,7 @@ pub async fn run_session<T, F>(
             Passo::Pedido => {
                 if transport.write(&battery_request()).await.is_err() {
                     emit(DeviceEvent::Disconnected);
-                    return;
+                    return demand;
                 }
                 aguardando = true;
             }
@@ -179,7 +190,7 @@ mod tests {
         let (tx, rx) = tokio::sync::mpsc::channel(4);
         drop(tx);
         let mut eventos = Vec::new();
-        run_session(t, rx, |e| eventos.push(e)).await;
+        let _ = run_session(t, rx, |e| eventos.push(e)).await;
         eventos
     }
 
@@ -273,7 +284,7 @@ mod tests {
         tx.send(()).await.expect("pedido");
         drop(tx);
         let mut eventos = Vec::new();
-        run_session(t, rx, |e| eventos.push(e)).await;
+        let _ = run_session(t, rx, |e| eventos.push(e)).await;
         let leituras = eventos
             .iter()
             .filter(|e| matches!(e, DeviceEvent::Battery(_)))
@@ -285,9 +296,8 @@ mod tests {
         let reg = t.registro();
         let (tx, rx) = tokio::sync::mpsc::channel(4);
         drop(tx);
-        run_session(t, rx, |_| {}).await;
-        let escritas = reg.lock().unwrap().clone();
-        escritas
+        let _ = run_session(t, rx, |_| {}).await;
+        reg.lock().unwrap().clone()
     }
 
     #[tokio::test(start_paused = true)]

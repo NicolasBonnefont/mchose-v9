@@ -8,7 +8,7 @@ description = "Acesso ao MCHOSE V9 PRO via hidraw, com hotplug"
 [dependencies]
 mchose-protocol = { path = "../mchose-protocol" }
 # AsyncFd espera o descritor do hidraw e o do monitor sem thread bloqueante.
-tokio = { version = "1", features = ["rt", "time", "net", "sync"] }
+tokio = { version = "1", features = ["rt", "time", "net", "sync", "macros"] }
 futures = "0.3"
 udev = "0.9"
 libc = "0.2"

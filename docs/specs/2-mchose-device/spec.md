@@ -167,10 +167,17 @@ card #3, e o vocabulário do evento não pode induzi-lo ao erro.
 ## Arquivos no escopo
 
 - `Cargo.toml` (raiz) — acrescenta `crates/mchose-device` aos membros
-- `crates/mchose-device/src/` em módulo por assunto, como no card #1:
-  `discovery` (sysfs), `transport` (o trait, a implementação hidraw e o fake),
-  `machine` (estados e sequenciamento) e `lib` (o `Stream` e o evento)
+- `crates/mchose-device/**`
 - `crates/mchose-device/AGENTS.md`, o Module Pack que o card #3 vai ler
+
+Dentro do crate, módulo por assunto, como no card #1: `discovery` (sysfs),
+`transport` (o trait, o fake e a implementação sobre hidraw), `machine` (a
+sessão e seus estados), `hotplug` (a supervisão que atravessa as sessões) e
+`lib` (o `Stream`, a alça e o evento).
+
+O `hotplug` não constava da primeira redação desta lista — a supervisão estava
+diluída entre `machine` e `lib`, e separá-la só ficou evidente na implementação,
+quando a sessão e o que atravessa sessões se mostraram dois assuntos.
 - `Cargo.lock` — muda na primeira dependência externa do projeto
 - `AGENTS.md` (raiz) — *Stack real* ("workspace de um crate" e "faltam headers"
   ficam falsos), *Comandos* e *Rede de segurança automatizada*

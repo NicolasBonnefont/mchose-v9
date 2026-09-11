@@ -200,3 +200,4 @@ mod tests {
         assert_eq!(&buf[..n], FIRMWARE);
     }
 }
+pub(crate) mod hidraw;

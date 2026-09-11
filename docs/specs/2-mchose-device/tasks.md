@@ -28,14 +28,14 @@
   **Requisito:** `Comportamento alvo` → "Escuta passiva", "Estados observáveis"; invariantes do evento owned e do no-op da consulta sob demanda
   **Verificação:** `cargo test -p mchose-device machine::` — os sete critérios do fake no spec, incluindo consulta sob demanda em estado estacionário e no-op com dongle ausente
 
-- [ ] ### 5. Transporte real sobre hidraw
+- [x] ### 5. Transporte real sobre hidraw
   **Arquivos:** Criar: `crates/mchose-device/src/transport/hidraw.rs` · Editar: `src/transport.rs` · Teste: `#[ignore]` no próprio módulo
   **Consumes:** o trait da task 3
   **Produces:** implementação real com os dois ioctls de feature e espera assíncrona do descritor
   **Requisito:** `Comportamento alvo` → "Transporte atrás de um trait", parte da implementação real; `Critério de verificação` → caminho real
   **Verificação:** `cargo test -p mchose-device --no-run` e depois o binário sob privilégio com `--ignored`, com `uhid` carregado
 
-- [ ] ### 6. Hotplug e o Stream público
+- [x] ### 6. Hotplug e o Stream público
   **Arquivos:** Criar: `crates/mchose-device/src/hotplug.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** tasks 2 a 5
   **Produces:** monitor criado antes da enumeração, laço que não termina quando o dongle some, `Stream` de eventos owned e a alça de consulta
