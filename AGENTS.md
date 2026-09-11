@@ -139,13 +139,14 @@ Para o applet aparecer no painel: desktop entry com `X-CosmicApplet=true` e
 Documentação, comentários e mensagens de commit em **português**. Comentário
 explica *por quê*, não *o quê* — é o padrão do `g5-control` e a spec segue ele.
 
-Specs de design em `docs/superpowers/specs/AAAA-MM-DD-<tema>-design.md`.
 No `Arquivos no escopo` de um spec, cada item precisa ser **só o caminho ou o
 glob** — o `/sdd-validate` usa a linha inteira como padrão, então
 `` `Cargo.toml` (raiz) — acrescenta...`` nunca casa com `Cargo.toml`. A
 explicação vai em prosa, abaixo da lista.
 
-Specs do ciclo sdd em `docs/specs/`. Spikes descartáveis em `spikes/`.
+Specs do ciclo sdd em `docs/specs/`. Spikes descartáveis em `spikes/`. O
+protocolo e as armadilhas de hardware moram no `README.md`, que é público e é a
+referência para quem chegar.
 
 Commits sem prefixo de tipo; assunto em uma linha, corpo explicando a decisão.
 
@@ -153,8 +154,10 @@ Commits sem prefixo de tipo; assunto em uma linha, corpo explicando a decisão.
 
 **O protocolo é conhecimento frágil e mal distribuído.** Ele foi extraído de um
 bundle JavaScript cujos hashes rotacionam e que já truncou silenciosamente uma
-vez durante a investigação. A spec é o único registro dos bytes; se ela se
-perder, o trabalho se perde. Tratar `docs/superpowers/specs/` como código.
+vez durante a investigação — baixar conferindo o `Content-Length`. Os registros
+que sobraram são o `README.md` (bytes, famílias, armadilhas), os testes do
+`mchose-protocol` (as capturas reais) e `spikes/battery_probe.py`. Tratar os três
+como código: se sumirem, o trabalho se refaz do zero.
 
 **O EQ nunca teve spike.** Bateria está validada ponta a ponta; a filter-chain
 do PipeWire é papel. É o item com maior chance de estourar estimativa, e por

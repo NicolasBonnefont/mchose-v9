@@ -129,7 +129,7 @@ nada: quem espera os 300 ms e quem aplica o deadline é o card #2.
   (Feature). Comprimento é parte do contrato, não detalhe do consumidor.
 - **O report ID ocupa o byte 0 do buffer, na escrita e na leitura.** É a
   convenção do `hidraw` e difere da do WebHID de onde o protocolo foi extraído
-  — ver `docs/superpowers/specs/2026-09-11-mchose-v9-design.md`, seção Bateria.
+  — ver `README.md`, seção "O protocolo, e como ele foi obtido".
 - **A forma textual da versão é só exibição.** Nenhuma comparação de ordem é
   feita sobre ela: quem comparar versões compara os quatro bytes crus, porque a
   concatenação do fabricante deixa de ser ordenável assim que um byte passa
