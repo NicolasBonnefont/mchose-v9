@@ -15,7 +15,8 @@ aplicação de ganho no nó do PipeWire.
   quem reinicia é o `install/install-eq.sh`, no padrão da regra udev e do applet.
 - Trocar o sink padrão do sistema. Efeito colateral na sessão; quem decide é o
   usuário.
-- Surround. Depende de HRIR que o projeto não tem.
+- Surround virtual. Fora do projeto: exigiria HRIR de terceiros com
+  licenciamento não verificável.
 
 ## 2. Regras de negócio e invariantes
 

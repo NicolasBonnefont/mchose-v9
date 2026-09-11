@@ -22,13 +22,13 @@ MCHOSE HUB; no Linux não havia nada.
 | Acesso ao dispositivo, hotplug | pronto, validado no hardware |
 | Applet no painel do COSMIC | pronto, funcionando no painel |
 | EQ de 10 bandas via PipeWire | pronto |
-| Surround 7.1 | fora de escopo, ver abaixo |
 
 O applet mostra a bateria no painel e o EQ de 10 bandas funciona.
 
 ## Instalação
 
-Ainda não há pacote. Para desenvolver:
+Ainda não há pacote. Para desenvolver — **todos os comandos a partir da raiz do
+repositório**:
 
 ```bash
 # dependencias de sistema
@@ -136,7 +136,7 @@ install/                  regra udev, desktop entry, scripts de instalação
 spikes/                   probe em Python que validou o protocolo
 ```
 
-Para o EQ:
+Para o EQ, também da raiz do repositório:
 
 ```bash
 bash install/install-eq.sh                  # tudo em 0 dB
@@ -148,10 +148,9 @@ efeito. As dez bandas são `31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16k` Hz, com
 ganho de `-12` a `+12` dB.
 
 > [!NOTE]
-> **Surround 7.1 ficou de fora.** O `sink-virtual-surround-7.1-hesuvi.conf` do
-> PipeWire exige `hrir_hesuvi/hrir.wav` — resposta impulsional com licenciamento
-> próprio, que este repositório não redistribui. Quando virar card, o arquivo
-> será apontado a partir de uma instalação do usuário.
+> **Surround virtual não faz parte do projeto.** Ele exigiria um HRIR de
+> terceiros — resposta impulsional com licenciamento próprio — e o projeto optou
+> por não seguir esse caminho.
 
 Para ver os eventos sem painel:
 

@@ -181,9 +181,8 @@ como código: se sumirem, o trabalho se refaz do zero.
 
 **O EQ teve spike executado antes do spec** (11/09/2026): a filter-chain cria o
 sink virtual, e mudar ganho ao vivo funciona — **mas só com o sink ativo**.
-Suspenso, o comando é aceito e silenciosamente ignorado. O surround ficou de
-fora: depende de um HRIR que não temos e cujo licenciamento não dá para
-verificar.
+Suspenso, o comando é aceito e silenciosamente ignorado. Surround virtual não faz parte do
+projeto: exigiria um HRIR de terceiros com licenciamento não verificável.
 
 **Dois recursos são inalcançáveis, não adiados:** volume dos avisos sonoros e
 auto-desligamento. No Windows passam pela ConfLib da C-Media (`PropertyControl`
