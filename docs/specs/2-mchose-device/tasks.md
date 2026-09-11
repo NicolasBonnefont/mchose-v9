@@ -42,7 +42,7 @@
   **Requisito:** `Comportamento alvo` → "Hotplug", "Fluxo de eventos"; invariante "o evento publicado é owned e `Clone + Send + 'static`"
   **Verificação:** `cargo test -p mchose-device` — dispositivo que some não encerra o fluxo, e que volta produz leitura sem reassinatura
 
-- [ ] ### 7. Module Pack e AGENTS.md da raiz
+- [x] ### 7. Module Pack e AGENTS.md da raiz
   **Arquivos:** Criar: `crates/mchose-device/AGENTS.md` · Editar: `AGENTS.md` · Teste: —
   **Consumes:** o crate pronto
   **Produces:** o pack que o card #3 vai ler; raiz descrevendo dois crates, as dependências novas e os testes que exigem privilégio

@@ -35,3 +35,12 @@ Minor: `events()` deixa a thread viva se o Stream for descartado; um applet
 chama uma vez, mas nao ha desligamento explicito.
 Minor: os dois testes `#[ignore]` do caminho real nunca rodaram — /dev/hidraw5
 esta root-only porque a regra udev nao foi instalada nesta maquina.
+
+Task 7: completa — pack de 108 linhas com 12 invariantes ancoradas; AGENTS.md da
+raiz deixou de dizer "workspace de um crate" e passou a declarar os 2 testes que
+nunca rodaram.
+
+Minor: o spec do card #1 tem o mesmo defeito de formato que este teve — as linhas
+de "Arquivos no escopo" misturam caminho e explicacao, e o /sdd-validate usa a
+linha inteira como padrao. La passou despercebido porque o diff contra master,
+estando em master, era vazio.

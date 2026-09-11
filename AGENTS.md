@@ -4,17 +4,21 @@ Applet COSMIC que mostra bateria e controla o headset MCHOSE V9 PRO no Pop!_OS.
 
 ## Stack real
 
-Workspace Rust de **um** crate: `crates/mchose-protocol`, puro e sem I/O
-(card #1, entregue). Os outros três — `mchose-device`, `mchose-audio` e o applet
-`libcosmic` — nascem nos cards #2, #3 e #4.
+Workspace Rust de **dois** crates: `crates/mchose-protocol`, puro e sem I/O
+(card #1), e `crates/mchose-device`, que fala com o `/dev/hidraw` e expõe um
+`Stream` de eventos (card #2). Faltam `mchose-audio` e o applet `libcosmic`,
+cards #4 e #3.
 
 A stack foi escolhida contra a alternativa Python/GTK do projeto irmão
 `g5-control`, que resolve a mesma classe de problema nesta máquina. A troca foi
 deliberada, por causa do popover nativo e dos sliders do EQ.
 
 Toolchain fixada em `rust-toolchain.toml` (1.98.1) e instalada via `rustup`; o
-`rustc` 1.75 do apt não serve. `Cargo.lock` é versionado. Sem dependências
-externas no crate de protocolo, de propósito.
+`rustc` 1.75 do apt não serve. `Cargo.lock` é versionado.
+
+O crate de protocolo é **sem dependências externas**, de propósito. O de
+dispositivo traz `tokio`, `futures`, `udev` e `libc` — e é o único lugar do
+projeto com `unsafe`, confinado ao módulo dos ioctls.
 
 Ambiente verificado: COSMIC 1.0.0 (`cosmic-comp` a830784), `cosmic-applets`
 1.0.15, PipeWire 1.6.8, Python 3.12.3, kernel 7.1.5-76070105-generic.
@@ -30,10 +34,11 @@ presente, que é o que o EQ vai usar em runtime.
 
 | Ação | Comando |
 | --- | --- |
-| Teste | `cargo test -p mchose-protocol` |
-| Lint | `cargo clippy -p mchose-protocol -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
+| Teste | `cargo test` |
+| Lint | `cargo clippy --workspace -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
 | Formato | `cargo fmt --check` |
 | Build | `cargo build` |
+| Teste do caminho real | `cargo test -p mchose-device --no-run` e então o binário sob privilégio com `--ignored` |
 | Testar o protocolo no hardware | `python3 spikes/battery_probe.py` |
 
 O lint **não** usa `--all-targets`, de propósito: os lints antipânico existem
@@ -50,15 +55,25 @@ prova de que os bytes das fixtures vieram do hardware.
 
 ## Rede de segurança automatizada
 
-**20 testes de unidade em `mchose-protocol`, todos rodando sem hardware.**
-As fixtures são bytes reais capturados do dispositivo (`55 65 46 02`,
-`aa 01 00 00 01 02 ff 25`), não inventadas.
+**41 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
+`mchose-protocol` e 20 em `mchose-device`. As fixtures são bytes reais
+capturados do dispositivo (`55 65 46 02`, `aa 01 00 00 01 02 ff 25`), não
+inventadas.
+
+**Mais 2 marcados `#[ignore]`, que nunca rodaram:** exercitam o ioctl e o
+`AsyncFd` contra o hardware, e dependem de acesso ao `hidraw` — que esta máquina
+não tem, porque `install/99-mchose-v9.rules` não foi instalada. A camada que
+fala com o kernel é, hoje, a única parte não provada do projeto.
+
+**Compilar nunca acontece com privilégio.** `cargo test` executa `build.rs` e
+proc-macros de toda a árvore; sob `sudo`, um PR que acrescente dependência vira
+root na máquina de quem revisar.
 
 **Zero CI e zero hook de pre-commit** — os três comandos acima rodam à mão. O
 crate de protocolo é o único do projeto que roda sem hardware, então é o
 candidato natural quando houver um card de CI.
 
-Ainda não existe: teste de I/O contra um V9 PRO virtual via `uhid` (card #2).
+Ainda não existe: um V9 PRO virtual via `uhid` para o caminho real.
 
 **Ressalva sobre o `uhid`:** `/dev/uhid` existe mas é `crw------- root root`, e
 o módulo não está carregado. Testes baseados nele exigem root — e **não** se
