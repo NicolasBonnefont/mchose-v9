@@ -21,3 +21,5 @@
         clippy::panic
     )
 )]
+
+pub mod device;

@@ -1,13 +1,13 @@
 # Tasks — 1 mchose-protocol: pacotes HID de bateria e firmware
 
-- [ ] ### 1. Workspace, crate e portões de lint
+- [x] ### 1. Workspace, crate e portões de lint
   **Arquivos:** Criar: `Cargo.toml`, `rust-toolchain.toml`, `crates/mchose-protocol/Cargo.toml`, `crates/mchose-protocol/src/lib.rs` · Editar: `.gitignore` · Teste: —
   **Consumes:** nada; é a primeira task
   **Produces:** workspace de um membro, toolchain fixada, `#![forbid(unsafe_code)]` e os lints de `clippy` ativos no crate
   **Requisito:** invariantes "o crate é `#![forbid(unsafe_code)]` e sem dependências fora da `std`" e "nenhuma entrada causa pânico" (os lints são o que sustenta a segunda); `Arquivos no escopo`
   **Verificação:** `cargo clippy -p mchose-protocol -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic && cargo fmt --check && test -f Cargo.lock`
 
-- [ ] ### 2. Identificação do dispositivo
+- [x] ### 2. Identificação do dispositivo
   **Arquivos:** Criar: `crates/mchose-protocol/src/device.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** crate da task 1
   **Produces:** predicado de reconhecimento por VID/PID e nome
