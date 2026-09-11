@@ -43,7 +43,16 @@ aplicação de ganho no nó do PipeWire.
 - **Nada de shell e nada de FFI** — `src/pipewire.rs:147`. `argv` separado, e o
   nó endereçado por id numérico. O `unsafe` do projeto segue confinado ao
   `mchose-device`.
-- **O resultado vem da releitura, não do estado do nó** — `src/pipewire.rs:189`.
+- **O resultado vem da releitura, não do estado do nó.**
+- **Uma política só: recusar, nunca clampar.** `argumentos_de_escrita` devolve
+  `None` para banda ou ganho fora de faixa, igual ao `gerar`. Clampar dava duas
+  políticas no mesmo crate e fazia banda 99 virar banda 10 em silêncio.
+- **Escrever o arquivo vem antes de aplicar, e por um ponto de entrada único.**
+  `install::definir_ganhos`. Aplicar ao vivo sem escrever perde o EQ no próximo
+  restart, sem aviso.
+- **O serial vai para o arquivo por necessidade** — o `target.object` precisa do
+  `node.name` inteiro. O que não vai é para a **saída**: nem o exemplo nem as
+  mensagens de erro imprimem o `node.name`.
 
 ## 3. Padrão canônico
 
@@ -80,6 +89,20 @@ ninguém é avisado. Sempre conferir o nó depois.
 **"Suspenso implica não aplicado" é falso como regra.** Foi observado numa
 instância própria de PipeWire (`pipewire -c`) e **não** se reproduz sob o
 `filter-chain.service`. Não deduza do estado; releia.
+
+**O estado do nó vem de `info.state`, não de `props["node.state"]`.** A primeira
+fixture de teste inventou o segundo caminho, e por isso `ativo` era sempre falso
+contra o dump real — o teste passava e o sistema discordava.
+
+**`set -o pipefail` com `grep -q` reprova pipeline que deu certo.** O `grep -q`
+sai na primeira ocorrência e fecha o pipe; o produtor leva SIGPIPE e termina
+não-zero, e o `pipefail` conta o pipeline como falho **mesmo tendo encontrado**.
+No `install-eq.sh` isso fazia a verificação nunca reconhecer um sink que existia,
+e mandava o usuário caçar um problema inexistente. Use `grep` sem `-q`.
+
+**`cargo run` precisa de `--` antes dos argumentos.** Sem ele, `-3` é lido como
+opção do cargo e o script aborta: só ganho positivo funcionaria, e o comando do
+README é justamente com negativo.
 
 **A faixa de ganho e as frequências são escolha nossa** — `src/config.rs:14`.
 Não há dado do fabricante para este fone: a tabela `EQ_HID_CMD` do bundle é da

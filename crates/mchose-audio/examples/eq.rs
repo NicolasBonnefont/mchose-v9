@@ -35,35 +35,32 @@ fn main() {
         eprintln!("sink do MCHOSE V9 PRO nao encontrado — o dongle esta plugado?");
         std::process::exit(1);
     };
-    println!("fone: {} (id {})", fone.node_name, fone.id);
+    // O node.name carrega o serial do dispositivo, e esta saida e a que o
+    // usuario cola numa issue do repositorio publico.
+    println!("fone encontrado (id {})", fone.id);
 
     let Some(dir) = install::diretorio_padrao() else {
         eprintln!("nao consegui achar o diretorio de configuracao");
         std::process::exit(1);
     };
-    match install::escrever(&dir, &ganhos, &fone.node_name) {
-        Ok(caminho) => println!("configuracao em {}", caminho.display()),
+    match install::definir_ganhos(&dir, &ganhos, &fone.node_name) {
         Err(e) => {
             eprintln!("nao instalei: {e:?}");
             std::process::exit(1);
         }
-    }
-
-    // Instalar nao e aplicar: o no so nasce depois do restart do servico.
-    match pipewire::achar_no_do_eq(&dump) {
-        None => println!(
-            "o sink do EQ ainda nao existe. Rode:\n  \
-             systemctl --user restart filter-chain.service"
-        ),
-        Some(no) => {
-            println!(
-                "sink do EQ: id {} ({})",
-                no.id,
-                if no.ativo { "ativo" } else { "suspenso" }
-            );
-            for (i, g) in ganhos.iter().enumerate() {
-                let r = pipewire::aplicar_ganho(i + 1, *g);
-                println!("  banda {} -> {g:+.1} dB: {r:?}", i + 1);
+        Ok(resultados) => {
+            println!("configuracao em {}", dir.join(install::ARQUIVO).display());
+            if resultados.iter().all(|r| *r == pipewire::Aplicacao::SemNo) {
+                println!(
+                    "o sink do EQ ainda nao existe. Rode:
+  \
+                     systemctl --user restart filter-chain.service"
+                );
+            } else {
+                for (i, r) in resultados.iter().enumerate() {
+                    let g = ganhos.get(i).copied().unwrap_or_default();
+                    println!("  banda {} -> {g:+.1} dB: {r:?}", i + 1);
+                }
             }
         }
     }

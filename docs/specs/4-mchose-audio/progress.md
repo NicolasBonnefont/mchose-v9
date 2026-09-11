@@ -32,3 +32,16 @@ Minor: o surround saiu do card por depender de um HRIR com licenciamento que eu
 nao consigo verificar. Vira card proprio.
 Minor: `serde_json` e a unica dependencia externa; escrever parser de JSON a mao
 seria superficie pior.
+
+Review: 14 achados, 3 deles 🔴. Todos aplicados, menos um 🔵 descartado com
+motivo (reescrever o gerador com raw strings, por ganho estetico, num codigo
+cuja saida ja esta verificada contra o PipeWire).
+
+O achado que mais custou nao veio dos revisores: o script reportava falha numa
+operacao que dera certo, por `set -o pipefail` com `grep -q`. Tentei tres
+explicacoes erradas antes de medir.
+
+Minor: `pw-dump`/`pw-cli` resolvidos pelo PATH, ao contrario do `Exec=` absoluto
+do applet. Sao ferramentas de sistema; fixar caminho quebraria em NixOS e afins.
+Minor: `target.object` fica obsoleto se o dongle for trocado — o serial muda.
+Minor: 20 `pw-dump` por passada de 10 bandas; caro para slider de UI.

@@ -104,7 +104,10 @@ pub fn achar_no_do_eq(dump: &str) -> Option<NoDoEq> {
         if props.get("node.name").and_then(|v| v.as_str()) != Some(NODE_NAME) {
             continue;
         }
-        let ativo = props.get("node.state").and_then(|v| v.as_str()) == Some("running");
+        // `info.state`, e nao `props["node.state"]`: o dump real nao tem esse
+        // campo em props. A fixture do primeiro teste inventou o caminho, e por
+        // isso `ativo` era sempre falso contra o sistema.
+        let ativo = info.get("state").and_then(|v| v.as_str()) == Some("running");
         let mut ganhos = BTreeMap::new();
         if let Some(lista) = info
             .get("params")
@@ -144,15 +147,23 @@ pub fn achar_no_do_eq(dump: &str) -> Option<NoDoEq> {
 ///
 /// Devolve os argumentos separados de proposito: quem executa usa
 /// `Command::args`, nunca uma string de shell.
-pub fn argumentos_de_escrita(no: u32, banda: usize, ganho: f32) -> Vec<String> {
-    let banda = banda.clamp(1, BANDAS);
-    let ganho = ganho.clamp(GANHO_MIN, GANHO_MAX);
-    vec![
+///
+/// `None` para banda ou ganho fora de faixa — **recusa, nao clampa**. O
+/// `config::gerar` ja recusava; clampar aqui dava duas politicas para a mesma
+/// entrada no mesmo crate, e fazia banda 99 virar banda 10 em silencio.
+pub fn argumentos_de_escrita(no: u32, banda: usize, ganho: f32) -> Option<Vec<String>> {
+    if !(1..=BANDAS).contains(&banda)
+        || !ganho.is_finite()
+        || !(GANHO_MIN..=GANHO_MAX).contains(&ganho)
+    {
+        return None;
+    }
+    Some(vec![
         "s".to_owned(),
         no.to_string(),
         "Props".to_owned(),
         format!("{{ params = [ \"eq_band_{banda}:Gain\" {ganho:.2} ] }}"),
-    ]
+    ])
 }
 
 /// Pergunta o estado ao PipeWire.
@@ -179,6 +190,8 @@ pub enum Aplicacao {
     /// O no do EQ nao existe — a configuracao foi instalada mas o servico nao
     /// reiniciou, ou o texto foi recusado em silencio.
     SemNo,
+    /// Banda ou ganho fora de faixa. Nada foi escrito.
+    Recusado,
 }
 
 /// Aplica um ganho e **confere relendo**.
@@ -186,22 +199,21 @@ pub enum Aplicacao {
 /// A releitura vem depois da escrita, nunca antes: entre checar e escrever o no
 /// pode mudar de estado. O resultado sai do valor relido, nunca deduzido do
 /// estado — ver [`NoDoEq::ativo`].
-pub fn aplicar_ganho(banda: usize, ganho: f32) -> Aplicacao {
-    let Some(antes) = dump().as_deref().and_then(achar_no_do_eq) else {
-        return Aplicacao::SemNo;
+pub fn aplicar_ganho(no: &NoDoEq, banda: usize, ganho: f32) -> Aplicacao {
+    let Some(args) = argumentos_de_escrita(no.id, banda, ganho) else {
+        return Aplicacao::Recusado;
     };
-    let args = argumentos_de_escrita(antes.id, banda, ganho);
     if std::process::Command::new("pw-cli")
-        .args(&args)
+        .args(args)
         .output()
         .is_err()
     {
         return Aplicacao::NaoAplicado;
     }
-    let chave = format!("eq_band_{}:Gain", banda.clamp(1, BANDAS));
+    let chave = format!("eq_band_{banda}:Gain");
     let depois = dump().as_deref().and_then(achar_no_do_eq);
     match depois.and_then(|n| n.ganhos.get(&chave).copied()) {
-        Some(v) if (v - ganho.clamp(GANHO_MIN, GANHO_MAX)).abs() < 0.05 => Aplicacao::Aplicado,
+        Some(v) if (v - ganho).abs() < 0.05 => Aplicacao::Aplicado,
         Some(_) => Aplicacao::NaoAplicado,
         None => Aplicacao::SemNo,
     }
@@ -224,7 +236,7 @@ mod tests {
           "alsa.components": "USB291d:385d",
           "alsa.card_name": "MCHOSE V9 PRO 2", "media.class": "Audio/Sink" } } },
       { "id": 42, "type": "PipeWire:Interface:Node",
-        "info": { "props": { "node.name": "mchose_v9_eq", "node.state": "running" },
+        "info": { "props": { "node.name": "mchose_v9_eq" }, "state": "running",
           "params": { "Props": [
             { "volume": 1.0 },
             { "params": [ "eq_band_1:Gain", 0.0, "eq_band_5:Gain", -7.5 ] } ] } } }
@@ -294,17 +306,14 @@ mod tests {
 
     #[test]
     fn no_suspenso_nao_conta_como_ativo() {
-        let suspenso = DUMP.replace(
-            "\"node.state\": \"running\"",
-            "\"node.state\": \"suspended\"",
-        );
+        let suspenso = DUMP.replace("\"state\": \"running\"", "\"state\": \"suspended\"");
         let eq = achar_no_do_eq(&suspenso).expect("presente");
         assert!(!eq.ativo);
     }
 
     #[test]
     fn o_comando_de_escrita_nao_passa_por_shell() {
-        let args = argumentos_de_escrita(42, 5, -7.5);
+        let args = argumentos_de_escrita(42, 5, -7.5).expect("entrada valida");
         // argv separado: nada de `sh -c`, nada de interpolacao. O no vai por id
         // numerico, entao nome de sink com aspas nao alcanca lugar nenhum.
         assert_eq!(args[0], "s");
@@ -316,7 +325,11 @@ mod tests {
     }
 
     #[test]
-    fn banda_fora_de_faixa_nao_gera_comando() {
-        assert!(std::panic::catch_unwind(|| argumentos_de_escrita(1, 99, 0.0)).is_ok());
+    fn banda_ou_ganho_fora_de_faixa_nao_gera_comando() {
+        assert!(argumentos_de_escrita(1, 0, 0.0).is_none(), "banda 0");
+        assert!(argumentos_de_escrita(1, 99, 0.0).is_none(), "banda 99");
+        assert!(argumentos_de_escrita(1, 5, 20.0).is_none(), "ganho alto");
+        assert!(argumentos_de_escrita(1, 5, f32::NAN).is_none(), "NaN");
+        assert!(argumentos_de_escrita(1, 5, 6.0).is_some(), "caso valido");
     }
 }

@@ -230,12 +230,4 @@ mod tests {
         let texto = gerar(&planos(), ALVO).expect("valida");
         assert!(texto.starts_with(MARCADOR));
     }
-
-    #[test]
-    fn o_serial_do_dispositivo_nao_e_inventado_pelo_gerador() {
-        // O gerador so repete o alvo que recebeu; nao busca serial em lugar
-        // nenhum. Se o chamador passar um nome sem serial, nada acrescenta.
-        let texto = gerar(&planos(), "sink_sem_serial").expect("valida");
-        assert!(!texto.contains("0123456789AB"));
-    }
 }

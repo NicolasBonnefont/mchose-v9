@@ -54,17 +54,69 @@ pub fn escrever(dir: &Path, ganhos: &[f32; BANDAS], alvo: &str) -> Result<PathBu
     std::fs::create_dir_all(dir)?;
     // tmp + rename: o leitor nunca ve um arquivo pela metade, e um erro no meio
     // nao deixa configuracao truncada que o PipeWire recusaria em silencio.
-    let temporario = dir.join(format!("{ARQUIVO}.tmp"));
-    std::fs::write(&temporario, texto)?;
+    // Nome imprevisivel e `create_new`: um symlink preexistente num `.tmp` de
+    // nome fixo faria o `write` seguir o link e truncar o alvo — `~/.bashrc`,
+    // por exemplo. O guard do marcador so protege o destino final.
+    let unico = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or_default();
+    let temporario = dir.join(format!(".{ARQUIVO}.{unico}.tmp"));
+    {
+        use std::io::Write as _;
+        let mut f = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporario)?;
+        f.write_all(texto.as_bytes())?;
+    }
     std::fs::rename(&temporario, &destino)?;
     Ok(destino)
 }
 
+/// Define os ganhos: escreve o arquivo **e então** aplica ao vivo.
+///
+/// É o ponto de entrada que os consumidores usam. Existe porque a invariante
+/// "o arquivo é a fonte da verdade do ganho" precisa ser **estrutural**: se
+/// aplicar ao vivo sem escrever, o próximo restart do serviço reverte o EQ em
+/// silêncio. A ordem — arquivo primeiro — é o que garante isso mesmo quando a
+/// aplicação ao vivo falha.
+pub fn definir_ganhos(
+    dir: &Path,
+    ganhos: &[f32; BANDAS],
+    alvo: &str,
+) -> Result<Vec<crate::pipewire::Aplicacao>, ErroInstall> {
+    escrever(dir, ganhos, alvo)?;
+    let Some(no) = crate::pipewire::dump()
+        .as_deref()
+        .and_then(crate::pipewire::achar_no_do_eq)
+    else {
+        // Sem nó não há o que aplicar ao vivo: o arquivo ficou correto e o
+        // serviço precisa reiniciar.
+        return Ok(vec![crate::pipewire::Aplicacao::SemNo; BANDAS]);
+    };
+    Ok(ganhos
+        .iter()
+        .enumerate()
+        .map(|(i, g)| crate::pipewire::aplicar_ganho(&no, i + 1, *g))
+        .collect())
+}
+
 /// O diretório padrão, respeitando `XDG_CONFIG_HOME`.
 pub fn diretorio_padrao() -> Option<PathBuf> {
+    // `var_os` devolve `Some("")` para variavel setada e vazia, e a propria
+    // especificacao XDG manda tratar isso como nao-setada. Sem exigir caminho
+    // absoluto, o join viraria relativo e o arquivo nasceria no diretorio de
+    // trabalho — que no script de instalacao e a arvore do repositorio.
     let base = std::env::var_os("XDG_CONFIG_HOME")
         .map(PathBuf::from)
-        .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
+        .filter(|p| p.is_absolute())
+        .or_else(|| {
+            std::env::var_os("HOME")
+                .map(PathBuf::from)
+                .filter(|p| p.is_absolute())
+                .map(|h| h.join(".config"))
+        })?;
     Some(base.join("pipewire").join("filter-chain.conf.d"))
 }
 

@@ -68,9 +68,11 @@ de assumir.
 **Aplicação ao vivo.** Os ganhos são escritos no parâmetro `Props` do nó, sem
 recarregar nada — e o arquivo é atualizado junto.
 
-**O arquivo é a fonte da verdade do ganho.** Toda escrita ao vivo bem-sucedida
-atualiza o `control` correspondente no `.conf`; sem isso o próximo restart
-reverte o EQ em silêncio.
+**O arquivo é a fonte da verdade do ganho, e isso é estrutural.** Há um ponto de
+entrada único — `install::definir_ganhos` — que escreve o `.conf` e **só então**
+aplica banda a banda. Deixar a ordem por conta do chamador não basta: quem
+aplicasse ao vivo sem escrever perderia o EQ no próximo restart do serviço, em
+silêncio.
 
 **Nunca assumir que aplicou; confirmar relendo.** No spike, com a filter-chain
 hospedada numa instância própria (`pipewire -c`), escrever ganho num nó suspenso
@@ -103,10 +105,12 @@ nasceriam sem valor inicial.
 - **Arquivo preexistente sem o cabeçalho-marcador do crate não é sobrescrito.**
   A instalação falha e diz qual arquivo bloqueou; `effect_input.eq6` e vizinhos
   são do usuário, e o crate nunca remove o que não escreveu.
-- **O serial não aparece no texto gerado nem em mensagem de erro.** A ligação ao
-  sink físico é feita em runtime; o arquivo referencia o `node.name`, e a mesma
-  regra do `PermissionDenied` do applet vale aqui — isto é feito para ser colado
-  em issue.
+- **O serial aparece no arquivo, e isso é inevitável.** O `target.object` precisa
+  do `node.name` completo do sink ALSA, e ele carrega o serial do dispositivo.
+  A primeira redação afirmava o contrário, e o código a contradizia. O que se
+  controla é a **saída**: o exemplo e as mensagens de erro não imprimem o
+  `node.name`, porque é essa saída que acaba colada em issue do repositório
+  público. Quem for compartilhar o `.conf` precisa saber disso.
 - **Ganho fora de `-12..=+12` dB não é escrito.**
 - **O resultado vem da releitura, não do estado do nó.** "Suspenso implica não
   aplicado" **não** é regra: foi observado numa instância própria de PipeWire e
