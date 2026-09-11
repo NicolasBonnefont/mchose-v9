@@ -1,0 +1,18 @@
+[package]
+name = "cosmic-applet-mchose"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+description = "Applet COSMIC com a bateria do headset MCHOSE V9 PRO"
+
+[[bin]]
+name = "cosmic-applet-mchose"
+path = "src/main.rs"
+
+[dependencies]
+mchose-device = { path = "../crates/mchose-device" }
+# Fixado no mesmo rev que os cosmic-applets 1.0.15 desta maquina usam, apurado no
+# Cargo.lock deles. O repositorio nao tem tag 1.0, e o `master` mexe todo dia.
+libcosmic = { git = "https://github.com/pop-os/libcosmic", rev = "d4d71fd53e5ed6bd3a430089114dffa2da3cd498", default-features = false, features = ["applet", "applet-token", "dbus-config", "multi-window", "tokio", "wayland", "desktop-systemd-scope", "winit"] }
+futures = "0.3"
+tokio = { version = "1", features = ["time"] }

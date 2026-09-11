@@ -7,21 +7,21 @@
   **Requisito:** `Arquivos no escopo` → o parágrafo do `lib.rs`; invariante "nem a UI nem exemplo algum imprimem bytes crus"; tabela de estados, que nomeia `72-mchose-v9.rules`
   **Verificação:** `cargo build --locked --examples` e `grep -r '99-mchose' --include='*.rs' --include='*.md'` sem resultado fora de `.arquivo/`
 
-- [ ] ### 2. O estado do applet, sem libcosmic
+- [x] ### 2. O estado do applet, sem libcosmic
   **Arquivos:** Criar: `cosmic-applet-mchose/Cargo.toml`, `cosmic-applet-mchose/src/state.rs`, `cosmic-applet-mchose/src/lib.rs` · Editar: `Cargo.toml` · Teste: no próprio módulo
   **Consumes:** os tipos reexportados da task 1
   **Produces:** o módulo que recebe `DeviceEvent` e devolve o que mostrar — frase, percentual, firmware — sem nenhuma dependência de UI
   **Requisito:** invariante "o estado do applet é um módulo sem libcosmic"; a tabela de sete estados; o braço `_` do `non_exhaustive`
   **Verificação:** `cargo test -p cosmic-applet-mchose --locked` — as sete frases, o último percentual sobrevivendo, `Connected` com `None` não apagando versão conhecida, e nenhum byte cru na saída
 
-- [ ] ### 3. O applet: assinatura, painel e popover
+- [x] ### 3. O applet: assinatura, painel e popover
   **Arquivos:** Criar: `cosmic-applet-mchose/src/app.rs`, `cosmic-applet-mchose/src/main.rs` · Editar: `cosmic-applet-mchose/Cargo.toml`, `src/lib.rs` · Teste: —
   **Consumes:** o módulo de estado da task 2
   **Produces:** o binário do painel — ícone com percentual, popover com estado e firmware, `refresh()` ao abrir, e nova tentativa visível quando o fluxo acaba
   **Requisito:** `Comportamento alvo` → "A assinatura", "No painel", "No popover", "O fluxo pode acabar"
   **Verificação:** `cargo build -p cosmic-applet-mchose --locked` e `cargo clippy` com os quatro lints
 
-- [ ] ### 4. Instalação: desktop entry e script
+- [x] ### 4. Instalação: desktop entry e script
   **Arquivos:** Criar: `install/com.github.NicolasBonnefont.mchose-v9.Applet.desktop`, `install/install-applet.sh` · Editar: `README.md` · Teste: —
   **Consumes:** o binário da task 3
   **Produces:** o desktop entry com `X-CosmicApplet=true` e `Exec=` absoluto, e o script que instala e acrescenta o ID ao `plugins_wings`

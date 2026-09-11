@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/mchose-protocol", "crates/mchose-device"]
+members = ["crates/mchose-protocol", "crates/mchose-device", "cosmic-applet-mchose"]
 
 [workspace.package]
 edition = "2024"

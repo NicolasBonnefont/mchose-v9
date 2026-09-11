@@ -165,6 +165,7 @@ tag `1.0`; as que existem param em `v0.12`.
 - `Cargo.lock`
 - `cosmic-applet-mchose/**`
 - `crates/mchose-device/**`
+- `crates/mchose-protocol/**`
 - `install/**`
 - `AGENTS.md`
 - `README.md`
@@ -176,6 +177,14 @@ inalcançáveis, e o applet não conseguiria nomeá-los em teste sem depender do
 `mchose-protocol` direto — contra a invariante de fronteira do próprio pack.
 Entram junto o `crates/mchose-device/AGENTS.md`, cujo blast radius ainda diz
 "consumidores diretos: nenhum ainda", e o exemplo `eventos`.
+
+O `crates/mchose-protocol/**` entrou **depois** de escrito este spec, e a
+expansão é declarada em vez de silenciosa: `BatteryReading` e `FirmwareVersion`
+são `#[non_exhaustive]`, o que impede literal de struct fora do crate que os
+define. Reexportá-los não bastava — o applet não conseguia construí-los nem em
+teste. Ganharam construtores `new`, que é o padrão para esse atributo. A revisão
+do spec previu a metade do problema (o applet não conseguiria nomeá-los); a outra
+metade só apareceu no compilador.
 
 ## Critério de verificação
 

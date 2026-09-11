@@ -42,6 +42,10 @@ impl ChargeState {
 }
 
 /// Uma leitura valida de bateria.
+///
+/// `#[non_exhaustive]` impede literal de struct fora deste crate, entao quem
+/// precisa construir uma — um teste do applet, por exemplo — usa
+/// [`BatteryReading::new`].
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[non_exhaustive]
 pub struct BatteryReading {
@@ -49,6 +53,14 @@ pub struct BatteryReading {
     pub percent: u8,
     /// Estado de carga.
     pub state: ChargeState,
+}
+
+impl BatteryReading {
+    /// Monta uma leitura. Existe para consumidores poderem construir casos de
+    /// teste; o percentual nao e validado aqui, quem valida e o decodificador.
+    pub const fn new(percent: u8, state: ChargeState) -> Self {
+        Self { percent, state }
+    }
 }
 
 /// Le a resposta de bateria.

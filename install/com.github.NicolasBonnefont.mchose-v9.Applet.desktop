@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=MCHOSE V9 PRO
+Comment=Bateria do headset MCHOSE V9 PRO
+Type=Application
+Exec=__BINARIO__
+Terminal=false
+Categories=COSMIC;
+Keywords=COSMIC;Applet;Battery;Headset;MCHOSE;
+Icon=audio-headphones-symbolic
+StartupNotify=true
+NoDisplay=true
+X-CosmicApplet=true
+X-CosmicHoverPopup=Start
