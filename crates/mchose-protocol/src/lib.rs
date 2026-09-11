@@ -5,7 +5,7 @@
 //! `mchose-device`.
 //!
 //! O protocolo foi extraido do driver oficial e validado contra o hardware.
-//! Ver `docs/specs/1-mchose-protocol/spec.md`.
+//! Ver `README.md` e `crates/mchose-protocol/AGENTS.md`.
 
 #![forbid(unsafe_code)]
 // Os lints abaixo sao o que sustenta a invariante "nenhuma entrada de qualquer
