@@ -28,7 +28,7 @@
   **Requisito:** `Comportamento alvo` → "O desktop entry"
   **Verificação:** `desktop-file-validate` no arquivo, e leitura: `Exec=` com caminho absoluto
 
-- [ ] ### 5. Module Pack e documentação
+- [x] ### 5. Module Pack e documentação
   **Arquivos:** Criar: `cosmic-applet-mchose/AGENTS.md` · Editar: `AGENTS.md`, `README.md`, `crates/mchose-device/AGENTS.md` · Teste: —
   **Consumes:** o applet pronto
   **Produces:** o pack do applet; blast radius do device com consumidor real; README com o estado atualizado

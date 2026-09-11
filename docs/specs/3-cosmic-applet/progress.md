@@ -35,3 +35,12 @@ VERIFICADO NO PAINEL (11/09/2026): instalado e o painel reiniciado, o applet
 aparece no canto inferior esquerdo mostrando o icone de fone e "70%" — a bateria
 real do dispositivo. Capturado com cosmic-screenshot; o grim nao serve porque o
 cosmic-comp nao implementa wlr-screencopy.
+
+Task 5: completa — pack do applet com 11 invariantes ancoradas, README e AGENTS.md
+da raiz atualizados (3 crates, 47 testes).
+
+Minor: o binario de debug passa de 400 MB; uso real pede release.
+Minor: a notificacao de bateria baixa saiu para a issue #7, por recomendacao da
+revisao de qualidade.
+Minor: desktop-file-validate reprova Categories=COSMIC;, que e o que os applets
+oficiais usam. Consistencia com a plataforma vence.

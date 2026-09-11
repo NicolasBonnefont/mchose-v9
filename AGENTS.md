@@ -4,10 +4,15 @@ Applet COSMIC que mostra bateria e controla o headset MCHOSE V9 PRO no Pop!_OS.
 
 ## Stack real
 
-Workspace Rust de **dois** crates: `crates/mchose-protocol`, puro e sem I/O
-(card #1), e `crates/mchose-device`, que fala com o `/dev/hidraw` e expõe um
-`Stream` de eventos (card #2). Faltam `mchose-audio` e o applet `libcosmic`,
-cards #4 e #3.
+Workspace Rust de **três** crates: `crates/mchose-protocol`, puro e sem I/O
+(card #1); `crates/mchose-device`, que fala com o `/dev/hidraw` e expõe um
+`Stream` de eventos (card #2); e `cosmic-applet-mchose`, o applet do painel
+(card #3). Falta `mchose-audio`, card #4.
+
+O libcosmic entra fixado no rev `d4d71fd5`, o mesmo que os `cosmic-applets`
+1.0.15 desta máquina usam. **A API dele se lê na fonte do checkout, não no doc:**
+o doc manda declarar `cosmic = { version = "1.0" }` do crates.io, que é um build
+tool de C/C++ sem relação com o projeto.
 
 A stack foi escolhida contra a alternativa Python/GTK do projeto irmão
 `g5-control`, que resolve a mesma classe de problema nesta máquina. A troca foi
@@ -55,8 +60,8 @@ prova de que os bytes das fixtures vieram do hardware.
 
 ## Rede de segurança automatizada
 
-**41 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
-`mchose-protocol` e 20 em `mchose-device`. As fixtures são bytes reais
+**47 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
+`mchose-protocol`, 16 em `mchose-device` e 10 no applet. As fixtures são bytes reais
 capturados do dispositivo (`55 65 46 02`, `aa 01 00 00 01 02 ff 25`), não
 inventadas.
 
