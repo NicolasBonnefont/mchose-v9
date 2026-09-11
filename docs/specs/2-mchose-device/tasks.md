@@ -7,7 +7,7 @@
   **Requisito:** `Arquivos no escopo`; invariante "valem as invariantes do mchose-protocol", parte "nenhuma entrada causa pânico"
   **Verificação:** `cargo clippy -p mchose-device -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic && cargo fmt --check`
 
-- [ ] ### 2. Descoberta por sysfs
+- [x] ### 2. Descoberta por sysfs
   **Arquivos:** Criar: `crates/mchose-device/src/discovery.rs` · Editar: `src/lib.rs` · Teste: no próprio módulo
   **Consumes:** `mchose_protocol::device::is_supported`
   **Produces:** enumeração que lê `HID_ID` e `HID_NAME` do `uevent` e devolve o caminho do `hidraw` que casou

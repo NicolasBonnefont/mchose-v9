@@ -20,3 +20,4 @@
         clippy::panic
     )
 )]
+pub mod discovery;
