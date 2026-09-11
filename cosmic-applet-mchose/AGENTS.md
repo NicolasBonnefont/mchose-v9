@@ -29,6 +29,10 @@ painel, o conteúdo do popover, e quando pedir uma leitura nova.
   (`src/state.rs:63`). O repositório é público e log colado vai parar lá.
 - **`Rejected` não muda a UI e seus bytes não chegam a lugar nenhum**
   (`src/state.rs:69`).
+- **Em `ChargeState::Asleep` o percentual não é aplicado.** O pack do protocolo
+  registra que esse estado nunca foi capturado no hardware, então o valor que
+  vem com ele é duvidoso: mantém-se o último bom e muda-se só a frase
+  (`src/state.rs:34`).
 - **O último percentual sobrevive a silêncio e a remoção.** Some o estado, não o
   número — apagar faria o painel piscar a cada oscilação do rádio.
 - **Versão de firmware conhecida não é apagada por um `Connected` com `None`**
@@ -75,6 +79,17 @@ desktop entry, e lê a lista de applets de
 aparecer.
 
 ## 5. Armadilhas
+
+**A árvore só é reprodutível com `--locked`.** Sete pacotes vêm de branch móvel
+do `pop-os` sem `rev` no manifesto — entre eles o `cosmic-config-derive`, que é
+proc-macro e **executa em tempo de compilação**. O `rev` do libcosmic fixa uma
+fonte; as outras sete só o `Cargo.lock` segura. Comando sem `--locked` em
+documentação pública é como código novo entra na máquina de quem revisa.
+
+**`Demand::refresh()` sem sessão enfileira, não vira no-op.** O canal tem
+capacidade 4: abrir o popover quatro vezes com o dongle fora produz uma rajada de
+consultas quando ele voltar. Inofensivo hoje, e registrado para não ser
+redescoberto como bug.
 
 **O painel está ancorado embaixo nesta máquina**, não em cima — `anchor: Bottom`
 na configuração. Quem for capturar tela para verificar precisa recortar a faixa
