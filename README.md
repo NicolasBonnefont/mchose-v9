@@ -20,22 +20,33 @@ MCHOSE HUB; no Linux não havia nada.
 |---|---|
 | Protocolo (bateria, firmware) | pronto, validado no hardware |
 | Acesso ao dispositivo, hotplug | pronto, validado no hardware |
-| Applet no painel do COSMIC | não começou |
+| Applet no painel do COSMIC | pronto, funcionando no painel |
 | EQ e surround via PipeWire | não começou |
 
-Bateria e firmware já são lidos do fone de verdade — hoje, pelos testes do
-caminho real. O que falta é a interface e um binário que você possa chamar.
+O applet mostra a bateria no painel. O que falta é o EQ.
 
 ## Instalação
 
 Ainda não há pacote. Para desenvolver:
 
 ```bash
-sudo apt install libudev-dev libpipewire-0.3-dev
+# dependencias de sistema
+sudo apt install libudev-dev libpipewire-0.3-dev libxkbcommon-dev \
+  libxkbcommon-x11-dev wayland-protocols libinput-dev libvulkan-dev \
+  libegl1-mesa-dev libgl1-mesa-dev libfontconfig1-dev libfreetype6-dev \
+  libexpat1-dev libgbm-dev libdrm-dev libdbus-1-dev libx11-dev libxcb1-dev \
+  libxcursor-dev libxi-dev libxrandr-dev
+
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# acesso ao dispositivo
 sudo cp install/72-mchose-v9.rules /etc/udev/rules.d/
 sudo udevadm control --reload && sudo udevadm trigger --action=add --subsystem-match=hidraw
-cargo test
+
+cargo test --locked
+cargo build --release --locked -p cosmic-applet-mchose
+bash install/install-applet.sh      # instala o applet e o registra no painel
+pkill -x cosmic-panel               # o painel reinicia sozinho
 ```
 
 > [!WARNING]
@@ -118,17 +129,30 @@ não protocolo de dispositivo.
 ```
 crates/mchose-protocol/   bytes ↔ tipos, sem I/O, sem dependências
 crates/mchose-device/     hidraw, hotplug, Stream de eventos
-install/                  regra udev
+cosmic-applet-mchose/     o applet; state.rs não conhece libcosmic
+install/                  regra udev, desktop entry, script de instalação
 spikes/                   probe em Python que validou o protocolo
+```
+
+Para ver os eventos sem painel:
+
+```bash
+cargo run --locked -p mchose-device --example eventos
 ```
 
 Testes usam bytes capturados do hardware, não inventados. Os marcados
 `#[ignore]` falam com o fone de verdade:
 
 ```bash
-cargo test                                  # sem hardware
-cargo test -p mchose-device -- --ignored    # precisa do dongle plugado
+cargo test --locked                                  # sem hardware
+cargo test --locked -p mchose-device -- --ignored    # precisa do dongle plugado
 ```
+
+> [!IMPORTANT]
+> Use sempre `--locked`. Sete dependências vêm de branch móvel do `pop-os`, sem
+> commit fixado no manifesto — entre elas o `cosmic-config-derive`, que é
+> proc-macro e **executa em tempo de compilação**. Só o `Cargo.lock` fecha a
+> árvore; sem ele, uma re-resolução puxa código novo que roda como você.
 
 ## Referências
 

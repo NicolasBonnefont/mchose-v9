@@ -17,7 +17,7 @@ sequenciar consulta e resposta, e reatar depois de um sumiço.
   applets oficiais do COSMIC põem essa função.
 - Decidir o que mostrar. "Dormindo com o último valor conhecido" e "instale a
   regra udev" são frases do applet — aqui só se publica o estado.
-- Instalar `install/99-mchose-v9.rules`. É operação de máquina.
+- Instalar `install/72-mchose-v9.rules`. É operação de máquina.
 
 ## 2. Regras de negócio e invariantes
 
@@ -93,14 +93,19 @@ kernel?".
 
 ## 4. Blast radius
 
-**Consumidores diretos:** nenhum ainda. O previsto é o applet do card #3, que
-consome `events()`, guarda a `Demand` e converte `DeviceEvent` em `Message`.
+**Consumidores diretos:** `cosmic-applet-mchose`, que chama `events()` uma vez
+por tentativa, guarda a `Demand` e converte `DeviceEvent` em `Message` do iced
+(`cosmic-applet-mchose/src/app.rs`). O exemplo `examples/eventos.rs` consome o
+mesmo `Stream` sem UI.
 
 **Contratos que atravessam processo:** `/dev/hidraw*` e o socket do monitor do
 kernel. Nenhuma rede, IPC, banco ou fila.
 
 **Pontos de registro:** `src/lib.rs` — módulo novo exige `pub(crate) mod` lá, e
-é onde a superfície pública é decidida. `Cargo.toml` da raiz lista os membros.
+é onde a superfície pública é decidida. **Os `pub use` de `BatteryReading`,
+`ChargeState` e `FirmwareVersion` também moram lá**: eles atravessam a fronteira
+dentro do `DeviceEvent`, e sem o reexport o applet teria de depender do
+`mchose-protocol` direto. Mexer neles quebra o applet. `Cargo.toml` da raiz lista os membros.
 **`install/72-mchose-v9.rules`** é o terceiro, e o mais fácil de esquecer: ele
 casa por VID/PID, então mexer nos ids suportados sem mexer nele faz o módulo
 achar o dispositivo pelo `sysfs` e não conseguir abri-lo.

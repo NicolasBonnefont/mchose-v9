@@ -13,6 +13,13 @@ pub struct FirmwareVersion {
 }
 
 impl FirmwareVersion {
+    /// Monta uma versao a partir dos quatro bytes crus. Existe pelo mesmo motivo
+    /// que [`super::battery::BatteryReading::new`]: `#[non_exhaustive]` impede
+    /// literal de struct fora deste crate.
+    pub const fn new(bytes: [u8; 4]) -> Self {
+        Self { bytes }
+    }
+
     /// A forma textual que o fabricante usa: cada byte como um digito decimal.
     ///
     /// E **so exibicao**. Nao serve para comparar versoes: assim que um byte

@@ -38,7 +38,7 @@ pub enum DeviceEvent {
     NoDevice,
     /// Abrir o dispositivo devolveu `EACCES`.
     ///
-    /// **Nao e "sem dongle".** Significa que `install/99-mchose-v9.rules` nao
+    /// **Nao e "sem dongle".** Significa que `install/72-mchose-v9.rules` nao
     /// foi instalada — verificado em 11/09/2026: sem a regra, `/dev/hidraw5`
     /// fica `crw------- root root`. Quem mostra a mensagem precisa poder dizer
     /// *instale a regra*, e nao *fone desligado*.

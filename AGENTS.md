@@ -4,10 +4,15 @@ Applet COSMIC que mostra bateria e controla o headset MCHOSE V9 PRO no Pop!_OS.
 
 ## Stack real
 
-Workspace Rust de **dois** crates: `crates/mchose-protocol`, puro e sem I/O
-(card #1), e `crates/mchose-device`, que fala com o `/dev/hidraw` e expõe um
-`Stream` de eventos (card #2). Faltam `mchose-audio` e o applet `libcosmic`,
-cards #4 e #3.
+Workspace Rust de **três** crates: `crates/mchose-protocol`, puro e sem I/O
+(card #1); `crates/mchose-device`, que fala com o `/dev/hidraw` e expõe um
+`Stream` de eventos (card #2); e `cosmic-applet-mchose`, o applet do painel
+(card #3). Falta `mchose-audio`, card #4.
+
+O libcosmic entra fixado no rev `d4d71fd5`, o mesmo que os `cosmic-applets`
+1.0.15 desta máquina usam. **A API dele se lê na fonte do checkout, não no doc:**
+o doc manda declarar `cosmic = { version = "1.0" }` do crates.io, que é um build
+tool de C/C++ sem relação com o projeto.
 
 A stack foi escolhida contra a alternativa Python/GTK do projeto irmão
 `g5-control`, que resolve a mesma classe de problema nesta máquina. A troca foi
@@ -34,18 +39,18 @@ presente, que é o que o EQ vai usar em runtime.
 
 | Ação | Comando |
 | --- | --- |
-| Teste | `cargo test` |
-| Lint | `cargo clippy --workspace -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
+| Teste | `cargo test --locked` |
+| Lint | `cargo clippy --workspace --locked -- -D warnings -D clippy::indexing_slicing -D clippy::unwrap_used -D clippy::expect_used -D clippy::panic` |
 | Formato | `cargo fmt --check` |
-| Build | `cargo build` |
-| Teste do caminho real | `cargo test -p mchose-device --no-run` e então o binário sob privilégio com `--ignored` |
+| Build | `cargo build --locked` |
+| Teste do caminho real | `cargo test --locked -p mchose-device --no-run` e então o binário sob privilégio com `--ignored` |
 | Testar o protocolo no hardware | `python3 spikes/battery_probe.py` |
 
 O lint **não** usa `--all-targets`, de propósito: os lints antipânico existem
 para o código que recebe bytes do dispositivo, e `expect` num teste é como o
 teste declara falha.
 
-O probe precisa de `sudo` **enquanto** `install/99-mchose-v9.rules` não estiver
+O probe precisa de `sudo` **enquanto** `install/72-mchose-v9.rules` não estiver
 instalada; com a regra aplicada e o dongle replugado, o `uaccess` entrega o
 `hidraw` ao usuário da sessão e o `sudo` deixa de ser necessário. Rodar como root
 um script que faz `O_RDWR` em canal vendor de firmware é privilégio a mais.
@@ -55,8 +60,8 @@ prova de que os bytes das fixtures vieram do hardware.
 
 ## Rede de segurança automatizada
 
-**41 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
-`mchose-protocol` e 20 em `mchose-device`. As fixtures são bytes reais
+**47 testes de unidade, todos rodando sem hardware e sem privilégio** — 21 em
+`mchose-protocol`, 16 em `mchose-device` e 10 no applet. As fixtures são bytes reais
 capturados do dispositivo (`55 65 46 02`, `aa 01 00 00 01 02 ff 25`), não
 inventadas.
 
@@ -64,6 +69,10 @@ inventadas.
 hardware. Rodaram em 11/09/2026 com a regra udev instalada, **sem privilégio**:
 descoberta em `/dev/hidraw5` e leitura de 70% descarregando. Ficam sob demanda
 porque dependem do dongle plugado.
+
+**`--locked` não é zelo.** Sete dependências vêm de branch móvel do `pop-os` sem
+commit fixado no manifesto, incluindo o `cosmic-config-derive`, que é proc-macro
+e executa em tempo de compilação. Só o `Cargo.lock` fecha a árvore.
 
 **Compilar nunca acontece com privilégio.** `cargo test` executa `build.rs` e
 proc-macros de toda a árvore; sob `sudo`, um PR que acrescente dependência vira
